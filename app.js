@@ -3,7 +3,7 @@ let uploadedImage = null;
 let svgString = '';
 let originalFileName = '';
 let useServerAPI = false; // Toggle between client-side and server-side - DEFAULT: ImageTracer (Client)
-let serverURL = 'http://localhost:3000'; // Change this to your deployed server URL
+let serverURL = ''; // Server API URL (Optional - leave empty for client-side only)
 
 // DOM Elements
 const uploadBox = document.getElementById('uploadBox');
@@ -217,6 +217,11 @@ function initializeEventListeners() {
     document.getElementById('colorsampling').addEventListener('change', markAsCustom);
     document.getElementById('numberofcolors').addEventListener('input', markAsCustom);
     document.getElementById('pathomit').addEventListener('input', markAsCustom);
+
+    // Close toast on click
+    toast.addEventListener('click', () => {
+        toast.classList.remove('show');
+    });
 
     // Algorithm toggle
     if (algorithmToggle) {

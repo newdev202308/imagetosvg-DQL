@@ -53,24 +53,24 @@
                 </div>
 
                 <!-- Algorithm Selection -->
+                <!-- Algorithm Toggle (Available for Advanced Users) -->
                 <div class="algorithm-section">
-                    <label class="toggle-label">
-                        <span class="toggle-title">🔬 Conversion Algorithm:</span>
-                        <div class="toggle-container">
-                            <span class="toggle-option">ImageTracer (Client)</span>
-                            <label class="switch">
-                                <input type="checkbox" id="algorithmToggle" checked>
-                                <span class="slider"></span>
-                            </label>
-                            <span class="toggle-option">Potrace (Server) ⭐</span>
-                        </div>
-                    </label>
+                    <h3>Algorithm</h3>
+                    <p class="algorithm-note">💻 Using ImageTracer (Client) - Offline conversion, no server required</p>
+                    <div class="toggle-container">
+                        <span>ImageTracer (Client)</span>
+                        <label class="switch">
+                            <input type="checkbox" id="algorithmToggle">
+                            <span class="slider"></span>
+                        </label>
+                        <span>Potrace (Server)</span>
+                    </div>
 
-                    <div class="server-config" style="display: block;">
-                        <label for="serverURL">Server URL:</label>
-                        <input type="text" id="serverURL" value="http://localhost:3000"
-                            placeholder="http://localhost:3000">
-                        <small>Change this URL when deploying to production</small>
+                    <!-- Server URL Input (Visible when Server mode is selected) -->
+                    <div class="setting-item server-settings" style="display: none; margin-top: 15px;">
+                        <label for="serverURL">Server URL (from Render/Railway):</label>
+                        <input type="text" id="serverURL" value="" placeholder="https://your-server.onrender.com">
+                        <small>Deploy backend to Render/Railway first, then paste URL here.</small>
                     </div>
                 </div>
 
