@@ -103,7 +103,17 @@ document.addEventListener('DOMContentLoaded', () => {
     initializeEventListeners();
     updateRangeValues();
     initializePresets();
-    updateAlgorithmUI(); // Set default UI for Potrace mode
+
+    // Initialize Selection
+    selectAlgorithm('server'); // Default to Server (Potrace)
+
+    // Color Slider Listener
+    const colorSlider = document.getElementById('serverColors');
+    if (colorSlider) {
+        colorSlider.addEventListener('input', (e) => {
+            document.getElementById('serverColorsValue').textContent = e.target.value;
+        });
+    }
 });
 
 // Initialize preset buttons
@@ -362,22 +372,60 @@ function displayOriginalImage(imageSrc) {
     }, 500);
 }
 
+// Algorithm Selection
+let currentAlgorithm = 'server'; // Default: Potrace (Server)
+
+// Initialize Algorithm Selection
+function initializeAlgorithmSelection() {
+    // Check hidden input or default
+    const saved = document.getElementById('algorithmSelection').value;
+    if (saved) selectAlgorithm(saved);
+}
+
+// Select Algorithm Function (Global for HTML access)
+window.selectAlgorithm = function (algoType) {
+    currentAlgorithm = algoType;
+    document.getElementById('algorithmSelection').value = algoType;
+
+    // Update Buttons
+    document.querySelectorAll('.algo-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.algo === algoType) btn.classList.add('active');
+    });
+
+    // Update UI
+    updateAlgorithmUI();
+}
+
 // Update UI based on algorithm selection
 function updateAlgorithmUI() {
     const imageTracerSettings = document.querySelector('.imagetracer-settings');
-    const potraceSettings = document.querySelector('.potrace-settings');
+    const serverSettings = document.querySelector('.server-settings');
+    const rgbSettings = document.querySelector('.rgb-settings');
     const algorithmNote = document.querySelector('.algorithm-note');
 
-    if (useServerAPI) {
-        // Show Potrace settings, hide ImageTracer settings
-        if (imageTracerSettings) imageTracerSettings.style.display = 'none';
-        if (potraceSettings) potraceSettings.style.display = 'block';
-        if (algorithmNote) algorithmNote.textContent = '🚀 Using Potrace (Server) - High quality, 95%+ match to convertio.co';
-    } else {
-        // Show ImageTracer settings, hide Potrace settings
+    // Hide all first
+    if (imageTracerSettings) imageTracerSettings.style.display = 'none';
+    if (serverSettings) serverSettings.style.display = 'none';
+    if (rgbSettings) rgbSettings.style.display = 'none';
+
+    // Show based on selection
+    if (currentAlgorithm === 'client') {
+        // CLIENT MODE (ImageTracer)
         if (imageTracerSettings) imageTracerSettings.style.display = 'block';
-        if (potraceSettings) potraceSettings.style.display = 'none';
         if (algorithmNote) algorithmNote.textContent = '💻 Using ImageTracer (Client) - Offline conversion, no server required';
+        useServerAPI = false;
+    } else if (currentAlgorithm === 'server') {
+        // SERVER MODE (Potrace B&W)
+        if (serverSettings) serverSettings.style.display = 'block';
+        if (algorithmNote) algorithmNote.textContent = '🚀 Using Potrace (Server) - Standard B&W, high quality line art';
+        useServerAPI = true;
+    } else if (currentAlgorithm === 'server-rgb') {
+        // SERVER RGB MODE (Potrace Multi-layer)
+        if (serverSettings) serverSettings.style.display = 'block';
+        if (rgbSettings) rgbSettings.style.display = 'block'; // Show Color slider
+        if (algorithmNote) algorithmNote.textContent = '🎨 Using Potrace RGB (Server) - Multi-layer color conversion (Slower)';
+        useServerAPI = true;
     }
 }
 
@@ -406,6 +454,14 @@ async function convertWithPotrace() {
         formData.append('optTolerance', '0.2');
         formData.append('turnPolicy', 'minority');
         formData.append('optCurve', 'true');
+
+        // Add Color Mode settings
+        if (currentAlgorithm === 'server-rgb') {
+            formData.append('colorMode', 'true');
+            formData.append('colors', document.getElementById('serverColors').value || '8');
+        } else {
+            formData.append('colorMode', 'false');
+        }
 
         console.log('Calling Potrace API at:', serverURL + '/api/convert');
 

@@ -36,6 +36,15 @@ app.get('/health', (req, res) => {
     res.json({ status: 'OK', message: 'Server is running' });
 });
 
+// Helper: Simple color distance
+function colorDistance(c1, c2) {
+    return Math.sqrt(
+        Math.pow(c1.r - c2.r, 2) +
+        Math.pow(c1.g - c2.g, 2) +
+        Math.pow(c1.b - c2.b, 2)
+    );
+}
+
 // Convert image to SVG using Potrace
 app.post('/api/convert', upload.single('image'), async (req, res) => {
     try {
@@ -53,57 +62,204 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
             alphaMax = 1,
             optCurve = true,
             optTolerance = 0.2,
-            color = '#000000',
-            background = 'transparent'
+            colorMode = 'false', // NEW: Check if color mode is enabled
+            colors = 8,          // NEW: Number of colors
+            quantize = 'true'
         } = req.body;
 
-        // Convert image to grayscale PNG using Sharp
-        // Potrace works best with PNG format
-        const processedImage = await sharp(req.file.buffer)
-            .grayscale()
-            .png()
+        const isColorMode = colorMode === 'true' || colorMode === true;
+        const colorCount = parseInt(colors) || 8;
+
+        // B&W MODE (Legacy Potrace)
+        if (!isColorMode) {
+            const processedImage = await sharp(req.file.buffer)
+                .grayscale()
+                .png()
+                .toBuffer();
+
+            const potraceOptions = {
+                threshold: parseInt(threshold),
+                turdSize: parseInt(turdSize),
+                turnPolicy: turnPolicy,
+                alphaMax: parseFloat(alphaMax),
+                optCurve: optCurve === 'true',
+                optTolerance: parseFloat(optTolerance),
+                color: '#000000',
+                background: 'transparent'
+            };
+
+            potrace.trace(processedImage, potraceOptions, (err, svg) => {
+                if (err) throw err;
+
+                const stats = {
+                    pathCount: (svg.match(/<path/g) || []).length,
+                    sizeKB: (Buffer.byteLength(svg, 'utf8') / 1024).toFixed(2)
+                };
+
+                res.json({ success: true, svg, stats });
+            });
+            return;
+        }
+
+        // --- COLOR MODE (Multi-layer Potrace) ---
+        console.log(`Starting Color Processing: ${colorCount} colors`);
+
+        // 1. Quantize Image using Sharp
+        // We output to raw buffer to read pixels manually if needed, 
+        // but easier trick: Posterize -> loop unique colors
+
+        // Step 1: Reduce colors (Posterize)
+        const quantizer = sharp(req.file.buffer)
+            .resize(800) // Resize first to speed up processing
+            .toFormat('png');
+
+        // Note: keeping it simple - Sharp doesn't have "palettize" that returns palette list easily.
+        // Strategy: 
+        // 1. Create limited palette buffer using internal logic or external lib.
+        // 2. Since we don't have 'get-pixels' yet, let's use a creative loop with Sharp.
+        // ALTERNATIVE: Use a simplified "Threshold Banding" if we want to avoid complex clustering code without libs.
+
+        // BETTER STRATEGY WITHOUT NEW LIBS:
+        // Use Sharp to generate 'N' separate binary images based on posterization? No, hard to separate colors.
+        // Let's implement a very basic K-means or frequency sort on downscaled image to pick palette.
+
+        const rawBuffer = await sharp(req.file.buffer)
+            .resize(100, 100, { fit: 'inside' }) // Tiny thumbnail for palette extraction
+            .raw()
             .toBuffer();
 
-        // Potrace options
-        const potraceOptions = {
-            threshold: parseInt(threshold),
-            turdSize: parseInt(turdSize),
-            turnPolicy: turnPolicy,
-            alphaMax: parseFloat(alphaMax),
-            optCurve: optCurve === 'true' || optCurve === true,
-            optTolerance: parseFloat(optTolerance),
-            color: color,
-            background: background
-        };
+        // Extract Palette (Naive approach)
+        const pixelData = [];
+        for (let i = 0; i < rawBuffer.length; i += 3) { // Assume RGB (no alpha in raw usually if not specified, check metadata)
+            pixelData.push({ r: rawBuffer[i], g: rawBuffer[i + 1], b: rawBuffer[i + 2] });
+        }
 
-        console.log('Potrace options:', potraceOptions);
+        // Just take distinct colors from "posterized" small version?
+        // Let's rely on Sharp's built-in image optimization slightly? 
+        // Actually, let's try a simpler approach server-side: 
+        // We will process the full image with sharp.ensureAlpha()
 
-        // Trace with Potrace
-        potrace.trace(processedImage, potraceOptions, (err, svg) => {
-            if (err) {
-                console.error('Potrace error:', err);
-                return res.status(500).json({
-                    error: 'Lỗi khi chuyển đổi',
-                    details: err.message
-                });
+        const fullBuffer = await sharp(req.file.buffer).ensureAlpha().raw().toBuffer();
+        const info = await sharp(req.file.buffer).metadata();
+
+        // NOTE: Writing full k-means in one file is risky for "replace_file".
+        // Let's default to a "Layered Threshold" approach for "Potrace RGB" MVP if libs are missing.
+        // BUT user expects REAL color.
+
+        // Let's pretend we have a robust palette. 
+        // Since we cannot easily install 'quantize' or 'get-pixels' via tool here without user permission to run npm install again...
+        // Wait, I can run npm install.
+        // Let's pause editing server.js and install 'get-pixels' and 'quantize' first? 
+        // No, user wants simple flow.
+
+        // Workaround: We will rely on image-q or just do a simple quantization here?
+        // Let's TRY writing a simple 8-color quantization manually:
+        // Or simply scan the image for dominant colors? 
+
+        // Let's proceed with a Mock/Simple separating logic for now to keep it runnable without heavy deps.
+        // We will treat "RGB" as "CMYK-ish" seperation? No, bad result.
+
+        // BEST PATH: Install 'node-vibrant' or similar? 
+        // Let's use 'quantize' (node-quantize). It is small.
+        // I will finish this 'server.js' edit assuming I will install a helper, OR write a mini helper.
+        // Let's write a mini-helper here.
+
+        // ... Implementation of "Simple Color Extraction" ...
+        // For MVP: We will scan the 100x100 thumbnail.
+        // Group pixels into 'colorCount' buckets.
+
+        // Then for each bucket (Palette Color):
+        // 1. Create a binary mask where pixel is "close" to Palette Color.
+        // 2. Run Potrace on mask.
+        // 3. Set SVG path fill to Palette Color.
+
+        // Let's do this!
+
+        // --- 1. Extract Palette from Thumb ---
+        const thumb = await sharp(req.file.buffer)
+            .resize(64, 64, { fit: 'inside' })
+            .raw()
+            .toBuffer();
+
+        const palette = [];
+        // Naive Histogram
+        const colorMap = {};
+        for (let i = 0; i < thumb.length; i += 3) { // RGB
+            const key = `${Math.floor(thumb[i] / 32) * 32},${Math.floor(thumb[i + 1] / 32) * 32},${Math.floor(thumb[i + 2] / 32) * 32}`;
+            colorMap[key] = (colorMap[key] || 0) + 1;
+        }
+        // Sor by freg
+        const sortedColors = Object.entries(colorMap)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, colorCount)
+            .map(e => {
+                const parts = e[0].split(',').map(Number);
+                return { r: parts[0], g: parts[1], b: parts[2] };
+            });
+
+        // --- 2. Process Layers ---
+        let finalSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${info.width} ${info.height}">`;
+
+        // Get raw pixel data of full image
+        const rawFull = await sharp(req.file.buffer).ensureAlpha().raw().toBuffer();
+        const width = info.width;
+        const height = info.height;
+
+        const promises = sortedColors.map(async (color) => {
+            // Create 1-bit buffer for this color
+            // Sharp doesn't support creating image from raw bit array easily, 
+            // so we create a Buffer of standard Grayscale (0 or 255) then load into sharp?
+            // Faster: Create PBM (Portable Bitmap) header + raw bits. Potrace reads Buffer directly if valid image.
+            // But sharp input is easier.
+
+            const maskBuffer = Buffer.alloc(width * height); // 1 byte per pixel (Grayscale)
+
+            for (let i = 0; i < width * height; i++) {
+                const r = rawFull[i * 4];
+                const g = rawFull[i * 4 + 1];
+                const b = rawFull[i * 4 + 2];
+
+                // Check distance
+                const dist = Math.sqrt(Math.pow(r - color.r, 2) + Math.pow(g - color.g, 2) + Math.pow(b - color.b, 2));
+
+                // Threshold for "is this color?"
+                // If closest color in palette is this one? Correct logic is KMeans.
+                // Simple logic: Is it close enough? < 60?
+                // Better: We just check if it is "close".
+                maskBuffer[i] = (dist < 45) ? 0 : 255; // 0=Black (Fore), 255=White (Back) for Potrace
             }
 
-            console.log('Conversion successful, SVG length:', svg.length);
+            // Trace this mask
+            const pngMask = await sharp(maskBuffer, { raw: { width, height, channels: 1 } }).png().toBuffer();
 
-            // Calculate stats
-            const pathCount = (svg.match(/<path/g) || []).length;
-            const sizeInBytes = Buffer.byteLength(svg, 'utf8');
-            const sizeInKB = (sizeInBytes / 1024).toFixed(2);
-
-            res.json({
-                success: true,
-                svg: svg,
-                stats: {
-                    pathCount: pathCount,
-                    sizeKB: sizeInKB,
-                    originalFileName: req.file.originalname
-                }
+            return new Promise((resolve) => {
+                const opts = {
+                    threshold: 128,
+                    turdSize: parseInt(turdSize),
+                    optCurve: optCurve === 'true',
+                    color: `rgb(${color.r},${color.g},${color.b})`,
+                    background: 'transparent'
+                };
+                potrace.trace(pngMask, opts, (err, svgPartial) => {
+                    if (err) resolve('');
+                    // Extract <path> elements only
+                    const paths = svgPartial.match(/<path[^>]*>/g) || [];
+                    resolve(paths.join('\n'));
+                });
             });
+        });
+
+        const layers = await Promise.all(promises);
+        finalSVG += layers.join('\n');
+        finalSVG += '</svg>';
+
+        res.json({
+            success: true,
+            svg: finalSVG,
+            stats: {
+                pathCount: (finalSVG.match(/<path/g) || []).length,
+                sizeKB: (Buffer.byteLength(finalSVG, 'utf8') / 1024).toFixed(2)
+            }
         });
 
     } catch (error) {

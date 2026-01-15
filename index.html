@@ -57,14 +57,63 @@
                 <div class="algorithm-section">
                     <h3>Algorithm</h3>
                     <p class="algorithm-note">💻 Using ImageTracer (Client) - Offline conversion, no server required</p>
-                    <div class="toggle-container">
-                        <span>ImageTracer (Client)</span>
-                        <label class="switch">
-                            <input type="checkbox" id="algorithmToggle" checked>
-                            <span class="slider"></span>
-                        </label>
-                        <span>Potrace (Server)</span>
+                    <div class="toggle-container button-group-container">
+                        <style>
+                            .button-group-container {
+                                display: flex;
+                                gap: 10px;
+                                margin-bottom: 20px;
+                            }
+
+                            .algo-btn {
+                                flex: 1;
+                                padding: 12px;
+                                border: 2px solid #ddd;
+                                border-radius: 8px;
+                                background: #f5f5f5;
+                                cursor: pointer;
+                                text-align: center;
+                                font-weight: 500;
+                                transition: all 0.3s;
+                                color: #666;
+                            }
+
+                            .algo-btn:hover {
+                                border-color: #28a745;
+                                color: #28a745;
+                            }
+
+                            .algo-btn.active {
+                                background: #28a745;
+                                color: white;
+                                border-color: #28a745;
+                                box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+                            }
+
+                            .algo-btn i {
+                                display: block;
+                                font-size: 1.5em;
+                                margin-bottom: 5px;
+                            }
+                        </style>
+
+                        <div class="algo-btn active" data-algo="client" onclick="selectAlgorithm('client')">
+                            <i class="fa-solid fa-laptop-code"></i>
+                            ImageTracer<br><small>(Client)</small>
+                        </div>
+                        <div class="algo-btn" data-algo="server" onclick="selectAlgorithm('server')">
+                            <i class="fa-solid fa-server"></i>
+                            Potrace<br><small>(Server)</small>
+                        </div>
+                        <div class="algo-btn" data-algo="server-rgb" onclick="selectAlgorithm('server-rgb')">
+                            <i class="fa-solid fa-palette"></i>
+                            Potrace RGB<br><small>(Server)</small>
+                        </div>
                     </div>
+
+                    <!-- Hidden input to store selection -->
+                    <input type="hidden" id="algorithmSelection" value="client">
+
 
                     <!-- Server URL Input (Visible when Server mode is selected) -->
                     <div class="setting-item server-settings" style="display: none; margin-top: 15px;">
@@ -73,6 +122,15 @@
                             placeholder="https://your-server.onrender.com">
                         <small>Deploy backend to Render/Railway first, then paste URL here.</small>
                     </div>
+
+                    <!-- RGB Settings (Visible when Potrace RGB is selected) -->
+                    <div class="setting-item rgb-settings"
+                        style="display: none; margin-top: 15px; background: #e8f5e9; padding: 15px; border-radius: 8px;">
+                        <label for="serverColors">Color Count (Layers): <span id="serverColorsValue">8</span></label>
+                        <input type="range" id="serverColors" min="2" max="16" value="8" step="1">
+                        <small style="color: #666;">More colors = Slower processing (creates multiple layers)</small>
+                    </div>
+
                 </div>
 
                 <div class="settings-grid imagetracer-settings" style="display: none;">
