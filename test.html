@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test ImageTracer.js</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .status {
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 18px;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 2px solid #bee5eb;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test ImageTracer.js Library</h1>
+
+    <div id="status" class="status info">
+        ⏳ Đang kiểm tra thư viện...
+    </div>
+
+    <div id="details"></div>
+
+    <button onclick="testConversion()">🔄 Test Conversion</button>
+
+    <div id="result"></div>
+
+    <!-- Test với 3 CDN khác nhau -->
+    <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.min.js"
+            onerror="tryAlternativeCDN()"></script>
+
+    <script>
+        let cdnAttempt = 1;
+        let libraryLoaded = false;
+
+        // Kiểm tra thư viện sau khi load
+        window.addEventListener('load', () => {
+            checkLibrary();
+        });
+
+        function checkLibrary() {
+            const statusDiv = document.getElementById('status');
+            const detailsDiv = document.getElementById('details');
+
+            if (typeof ImageTracer !== 'undefined') {
+                libraryLoaded = true;
+                statusDiv.className = 'status success';
+                statusDiv.innerHTML = '✅ Thư viện ImageTracer.js đã load thành công!';
+
+                detailsDiv.innerHTML = `
+                    <div class="status info">
+                        <strong>Thông tin thư viện:</strong><br>
+                        - ImageTracer object: Tồn tại<br>
+                        - Version: 1.2.6<br>
+                        - Methods available: ${Object.keys(ImageTracer).length}<br>
+                        - CDN: jsDelivr (cdn.jsdelivr.net)
+                    </div>
+                `;
+            } else {
+                libraryLoaded = false;
+                statusDiv.className = 'status error';
+                statusDiv.innerHTML = '❌ Lỗi: Không thể load thư viện ImageTracer.js từ CDN';
+
+                detailsDiv.innerHTML = `
+                    <div class="status error">
+                        <strong>Nguyên nhân có thể:</strong><br>
+                        1. Không có kết nối internet<br>
+                        2. CDN bị chặn bởi firewall/antivirus<br>
+                        3. Trình duyệt chặn script từ nguồn bên ngoài<br><br>
+                        <strong>Giải pháp:</strong><br>
+                        - Kiểm tra kết nối internet<br>
+                        - Tắt AdBlock/uBlock nếu có<br>
+                        - Thử trình duyệt khác (Chrome/Firefox)<br>
+                        - Mở Developer Console (F12) để xem lỗi chi tiết
+                    </div>
+                `;
+            }
+        }
+
+        function tryAlternativeCDN() {
+            const alternatives = [
+                'https://unpkg.com/imagetracerjs@1.2.6/imagetracer_v1.2.6.js',
+                'https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.js'
+            ];
+
+            if (cdnAttempt < alternatives.length) {
+                console.log('Trying alternative CDN:', alternatives[cdnAttempt]);
+                const script = document.createElement('script');
+                script.src = alternatives[cdnAttempt];
+                script.onerror = tryAlternativeCDN;
+                script.onload = checkLibrary;
+                document.body.appendChild(script);
+                cdnAttempt++;
+            }
+        }
+
+        function testConversion() {
+            const resultDiv = document.getElementById('result');
+
+            if (!libraryLoaded) {
+                resultDiv.innerHTML = '<div class="status error">❌ Thư viện chưa load. Không thể test.</div>';
+                return;
+            }
+
+            resultDiv.innerHTML = '<div class="status info">⏳ Đang test chuyển đổi...</div>';
+
+            // Tạo ảnh test đơn giản (red square)
+            const canvas = document.createElement('canvas');
+            canvas.width = 100;
+            canvas.height = 100;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = 'red';
+            ctx.fillRect(25, 25, 50, 50);
+
+            try {
+                const dataURL = canvas.toDataURL();
+
+                ImageTracer.imageToSVG(
+                    dataURL,
+                    (svgstr) => {
+                        resultDiv.innerHTML = `
+                            <div class="status success">
+                                ✅ Test conversion thành công!<br><br>
+                                SVG length: ${svgstr.length} characters<br>
+                                <strong>Tool sẵn sàng sử dụng!</strong>
+                            </div>
+                            <details>
+                                <summary>Xem SVG output</summary>
+                                <pre style="max-height: 200px; overflow: auto; background: #f5f5f5; padding: 10px;">${svgstr.substring(0, 500)}...</pre>
+                            </details>
+                        `;
+                    },
+                    {
+                        numberofcolors: 2,
+                        colorsampling: 0
+                    }
+                );
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="status error">
+                        ❌ Lỗi khi test conversion:<br>
+                        ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

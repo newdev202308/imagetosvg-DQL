@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image to SVG Converter - Edukul Style</title>
+    <!-- Google Fonts: Rubik & Poppins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&family=Rubik:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🎨 Image to SVG Converter</h1>
+            <p class="subtitle">Convert JPG, PNG, JPEG images to high-quality SVG vectors</p>
+        </header>
+
+        <div class="main-content">
+            <!-- Upload Section -->
+            <div class="upload-section">
+                <div class="upload-box" id="uploadBox">
+                    <input type="file" id="fileInput" accept="image/*" hidden>
+                    <div class="upload-icon">📁</div>
+                    <h3>Drag & drop your image here</h3>
+                    <p>or</p>
+                    <button class="btn-primary" id="selectFileBtn">Choose File</button>
+                    <p class="file-info">Support: JPG, PNG, JPEG (Max 10MB)</p>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div class="settings-section" id="settingsSection" style="display: none;">
+                <h3>⚙️ Conversion Settings</h3>
+
+                <!-- Preset Buttons -->
+                <div class="preset-section">
+                    <label>🎨 Quick Presets:</label>
+                    <div class="preset-buttons">
+                        <button class="btn-preset" data-preset="lineart">Line Art</button>
+                        <button class="btn-preset" data-preset="logo">Logo / Icon</button>
+                        <button class="btn-preset" data-preset="photo">Complex Photo</button>
+                        <button class="btn-preset" data-preset="sketch">Sketch</button>
+                        <button class="btn-preset active" data-preset="custom">Custom</button>
+                    </div>
+                </div>
+
+                <!-- Algorithm Selection -->
+                <div class="algorithm-section">
+                    <label class="toggle-label">
+                        <span class="toggle-title">🔬 Conversion Algorithm:</span>
+                        <div class="toggle-container">
+                            <span class="toggle-option">ImageTracer (Client)</span>
+                            <label class="switch">
+                                <input type="checkbox" id="algorithmToggle" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span class="toggle-option">Potrace (Server) ⭐</span>
+                        </div>
+                    </label>
+
+                    <div class="server-config" style="display: block;">
+                        <label for="serverURL">Server URL:</label>
+                        <input type="text" id="serverURL" value="http://localhost:3000"
+                            placeholder="http://localhost:3000">
+                        <small>Change this URL when deploying to production</small>
+                    </div>
+                </div>
+
+                <div class="settings-grid imagetracer-settings" style="display: none;">
+                    <div class="setting-item">
+                        <label for="colorsampling">Color Mode</label>
+                        <select id="colorsampling">
+                            <option value="0">Disabled</option>
+                            <option value="1" selected>Random</option>
+                            <option value="2">Deterministic</option>
+                        </select>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="numberofcolors">Number of Colors</label>
+                        <input type="number" id="numberofcolors" value="16" min="2" max="64">
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="blur">Blur</label>
+                        <input type="range" id="blur" min="0" max="5" value="0" step="1">
+                        <span id="blurValue">0</span>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="ltres">Threshold</label>
+                        <input type="range" id="ltres" min="0" max="255" value="128" step="1">
+                        <span id="ltresValue">128</span>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="qtres">Curve Smoothness</label>
+                        <input type="range" id="qtres" min="0.1" max="3" value="0.5" step="0.1">
+                        <span id="qtresValue">0.5</span>
+                        <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
+                            ⬅️ Low = Smoother | High = More Angular ➡️
+                        </small>
+                    </div>
+
+                    <div class="setting-item">
+                        <label for="pathomit">Path Omit (Detail Level)</label>
+                        <input type="number" id="pathomit" value="1" min="0" max="50">
+                        <small style="color: #666; font-size: 0.85em; display: block; margin-top: 4px;">
+                            Low = More Details | High = Simplified
+                        </small>
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-primary" id="convertBtn">🔄 Convert to SVG</button>
+                    <button class="btn-secondary" id="resetBtn">🔄 Choose Another Image</button>
+                </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="preview-section" id="previewSection" style="display: none;">
+                <div class="preview-container">
+                    <div class="preview-box">
+                        <h4>Original Image</h4>
+                        <div class="preview-content">
+                            <img id="originalImage" alt="Original">
+                        </div>
+                        <div class="preview-info" id="originalInfo"></div>
+                    </div>
+
+                    <div class="preview-box">
+                        <h4>Converted SVG</h4>
+                        <div class="preview-content" id="svgPreview">
+                            <div class="loading" id="loadingIndicator">
+                                <div class="spinner"></div>
+                                <p>Converting...</p>
+                            </div>
+                        </div>
+                        <div class="preview-info" id="svgInfo"></div>
+                    </div>
+                </div>
+
+                <div class="download-section" id="downloadSection" style="display: none;">
+                    <button class="btn-success" id="downloadBtn">⬇️ Download SVG</button>
+                    <button class="btn-secondary" id="viewCodeBtn">👁️ View SVG Code</button>
+                </div>
+            </div>
+
+            <!-- Code Viewer -->
+            <div class="code-viewer" id="codeViewer" style="display: none;">
+                <h4>SVG Code</h4>
+                <textarea id="svgCode" readonly></textarea>
+                <button class="btn-secondary" id="copyCodeBtn">📋 Copy code</button>
+            </div>
+        </div>
+
+        <footer>
+            <p>Made by DQL - PSSD | Supported formats: JPG, PNG, JPEG</p>
+        </footer>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <!-- ImageTracer.js Library -->
+    <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.min.js"></script>
+    <script src="app.js"></script>
+</body>
+
+</html>
