@@ -345,7 +345,7 @@ input:checked+.slider:before {
 /* Inputs and Sliders */
 .settings-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, 1fr) !important;
     /* 2 columns for better space efficiency */
     gap: 20px;
 }
