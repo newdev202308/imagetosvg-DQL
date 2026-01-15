@@ -345,38 +345,49 @@ input:checked+.slider:before {
 /* Inputs and Sliders */
 .settings-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    /* More compact columns */
-    gap: 15px;
-    /* Tighter gap */
-    align-items: end;
-    /* Align items to bottom so labels align if inputs differ height */
+    grid-template-columns: repeat(3, 1fr);
+    /* Force 3 columns on desktop */
+    gap: 20px;
+}
+
+.setting-item {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #eaecf0;
+    transition: all 0.2s ease;
+}
+
+.setting-item:hover {
+    border-color: #d0d5dd;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
 .setting-item label {
     display: block;
-    margin-bottom: 5px;
-    /* Tighter label margin */
-    font-weight: 500;
+    margin-bottom: 8px;
+    font-weight: 600;
     color: var(--text-dark);
-    font-size: 0.9rem;
-    /* Smaller font */
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .setting-item input[type="number"],
 .setting-item select {
     width: 100%;
-    padding: 8px;
-    /* Compact padding */
-    border: 1px solid #ddd;
+    padding: 10px;
+    border: 1px solid #d0d5dd;
     border-radius: 6px;
     font-size: 0.95rem;
     font-family: var(--font-body);
+    background: #fff;
 }
 
 .setting-item input[type="number"]:focus,
 .setting-item select:focus {
     border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(40, 167, 69, 0.1);
     outline: none;
 }
 
@@ -465,6 +476,13 @@ footer {
 }
 
 /* Responsive */
+@media (max-width: 992px) {
+    .settings-grid {
+        grid-template-columns: repeat(2, 1fr);
+        /* 2 columns on tablets */
+    }
+}
+
 @media (max-width: 768px) {
     header h1 {
         font-size: 2rem;
@@ -483,6 +501,13 @@ footer {
 
     .preview-container {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 576px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+        /* 1 column on mobile */
     }
 }
 
