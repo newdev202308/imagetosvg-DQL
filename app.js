@@ -2,7 +2,7 @@
 let uploadedImage = null;
 let svgString = '';
 let originalFileName = '';
-let useServerAPI = false; // Toggle between client-side and server-side - DEFAULT: ImageTracer (Client)
+let useServerAPI = true; // Toggle between client-side and server-side - DEFAULT: Potrace (Server)
 let serverURL = ''; // Server API URL (Optional - leave empty for client-side only)
 
 // DOM Elements
