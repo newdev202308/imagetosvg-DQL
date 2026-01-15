@@ -17,7 +17,15 @@ RUN npm install
 
 # Bundle app source
 # Copy all files from 'server' directory to working directory
+# Copy server files
 COPY server/ .
+
+# Create public directory for frontend
+RUN mkdir -p public
+
+# Copy frontend assets to public directory
+COPY index.html style.css app.js public/
+
 
 # Expose port
 EXPOSE 3000

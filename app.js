@@ -3,7 +3,19 @@ let uploadedImage = null;
 let svgString = '';
 let originalFileName = '';
 let useServerAPI = true; // Toggle between client-side and server-side - DEFAULT: Potrace (Server)
-let serverURL = ''; // Server API URL (Optional - leave empty for client-side only)
+// Server API URL - Auto-detect based on environment
+let serverURL = '';
+if (window.location.protocol === 'file:') {
+    serverURL = 'http://localhost:3000'; // Local file -> Local server
+} else if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    if (window.location.port !== '3000') {
+        serverURL = 'http://localhost:3000'; // Localhost (not 3000) -> Local server
+    } else {
+        serverURL = ''; // Same origin (proxy/served by backend)
+    }
+} else {
+    serverURL = ''; // Production (served by backend) -> Relative path check
+}
 
 // DOM Elements
 const uploadBox = document.getElementById('uploadBox');
