@@ -176,26 +176,76 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
         // Let's do this!
 
         // --- 1. Extract Palette from Thumb ---
+        // Increased size for better detail capture (lines/eyes)
         const thumb = await sharp(req.file.buffer)
-            .resize(64, 64, { fit: 'inside' })
+            .resize(100, 100, { fit: 'inside' })
             .raw()
             .toBuffer();
 
-        const palette = [];
-        // Naive Histogram
         const colorMap = {};
+        const step = 24; // Smaller step = more precise colors (was 32)
+
         for (let i = 0; i < thumb.length; i += 3) { // RGB
-            const key = `${Math.floor(thumb[i] / 32) * 32},${Math.floor(thumb[i + 1] / 32) * 32},${Math.floor(thumb[i + 2] / 32) * 32}`;
+            const r = Math.floor(thumb[i] / step) * step;
+            const g = Math.floor(thumb[i + 1] / step) * step;
+            const b = Math.floor(thumb[i + 2] / step) * step;
+
+            const key = `${r},${g},${b}`;
             colorMap[key] = (colorMap[key] || 0) + 1;
         }
-        // Sor by freg
-        const sortedColors = Object.entries(colorMap)
-            .sort((a, b) => b[1] - a[1])
-            .slice(0, colorCount)
-            .map(e => {
-                const parts = e[0].split(',').map(Number);
-                return { r: parts[0], g: parts[1], b: parts[2] };
-            });
+
+        // Sort by frequency
+        let uniqueColors = Object.entries(colorMap)
+            .sort((a, b) => b[1] - a[1]); // Descending
+
+        // Logic: Always preserve the DARKEST color found (usually outlines/eyes) 
+        // even if it's low frequency.
+        // Find darkest in the *entire* limited map
+        let darkest = null;
+        let minLum = 255 * 3;
+
+        uniqueColors.forEach(e => {
+            const parts = e[0].split(',').map(Number);
+            const lum = parts[0] + parts[1] + parts[2];
+            if (lum < minLum) {
+                minLum = lum;
+                darkest = e; // Keep full entry [key, freq]
+            }
+        });
+
+        // Slice top frequent
+        let finalColors = uniqueColors.slice(0, colorCount);
+
+        // Check if darkest is included. If not, swap the last one (least frequent of the top) with darkest.
+        // Unless colorCount is very small (2), then maybe we shouldn't force? 
+        // Actually, for Line Art, Black is CRITICAL.
+        if (darkest) {
+            const isIncluded = finalColors.some(c => c[0] === darkest[0]);
+            if (!isIncluded && finalColors.length > 0) {
+                // Replace the last one (lowest freq) with Darkest
+                finalColors[finalColors.length - 1] = darkest;
+            }
+        }
+
+        // Re-Sort final list so Darkest (Low Freq) is at the END?
+        // Wait, 'layers' logic: 
+        // We draw layers sequentially. 
+        // If we want outlines ON TOP, they must be LAST in the SVG.
+        // So Low Frequency should be LAST.
+        // My previous sort was Descending (High -> Low). 
+        // So High (Bg) is First (Bottom). Low (Details) is Last (Top).
+        // This is correct.
+        // Just need to ensure 'finalColors' is still sorted by Frequency (or specifically put Darkest last).
+
+        // Let's re-sort 'finalColors' by Luminance? No, by Freq is usually safe for layering.
+        // But if we force-added Darkest, it might have very low freq. 
+        // It should naturally be at the end if we just appended it? 
+        // No, I replaced the last element. So it IS at the end.
+
+        const sortedColors = finalColors.map(e => {
+            const parts = e[0].split(',').map(Number);
+            return { r: parts[0], g: parts[1], b: parts[2] };
+        });
 
         // --- 2. Process Layers ---
         let finalSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${info.width} ${info.height}">`;
