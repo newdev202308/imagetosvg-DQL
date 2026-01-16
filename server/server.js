@@ -273,10 +273,9 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
                 const dist = Math.sqrt(Math.pow(r - color.r, 2) + Math.pow(g - color.g, 2) + Math.pow(b - color.b, 2));
 
                 // Threshold for "is this color?"
-                // If closest color in palette is this one? Correct logic is KMeans.
-                // Simple logic: Is it close enough? < 60?
-                // Better: We just check if it is "close".
-                maskBuffer[i] = (dist < 45) ? 0 : 255; // 0=Black (Fore), 255=White (Back) for Potrace
+                // Lower threshold = Thinner, more precise lines (closer color match required)
+                // Higher threshold = Thicker lines (more pixels matched to this color)
+                maskBuffer[i] = (dist < 30) ? 0 : 255; // REDUCED from 45 to 30 for thinner, sharper lines
             }
 
             // Trace this mask
@@ -285,8 +284,11 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
             return new Promise((resolve) => {
                 const opts = {
                     threshold: 128,
-                    turdSize: parseInt(turdSize),
-                    optCurve: optCurve === 'true',
+                    turdSize: 0,  // FORCE 0 for RGB mode - Keep ALL details, no matter input setting
+                    turnPolicy: 'minority',
+                    alphaMax: 0.5,  // REDUCED from default 1.0 - Sharper corners, less smoothing
+                    optCurve: true,  // Always optimize
+                    optTolerance: 0.1,  // REDUCED from 0.2 - Higher precision, thinner lines
                     color: `rgb(${color.r},${color.g},${color.b})`,
                     background: 'transparent'
                 };
