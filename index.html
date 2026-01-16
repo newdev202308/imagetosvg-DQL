@@ -161,9 +161,12 @@
                     <!-- RGB Settings (Visible when Potrace RGB is selected) -->
                     <div class="setting-item rgb-settings"
                         style="display: none; margin-top: 15px; background: #e8f5e9; padding: 15px; border-radius: 8px;">
-                        <label for="serverColors">Color Count (Layers): <span id="serverColorsValue">8</span></label>
-                        <input type="range" id="serverColors" min="2" max="16" value="8" step="1">
-                        <small style="color: #666;">More colors = Slower processing (creates multiple layers)</small>
+                        <label for="serverColors">Color Count (Layers): <span id="serverColorsValue">12</span></label>
+                        <input type="range" id="serverColors" min="2" max="24" value="12" step="1">
+                        <small style="color: #666;">
+                            More colors = More separate paths (up to 20+ regions)<br>
+                            ⏱️ Processing time: 2-4 colors (~3s), 8-12 colors (~8s), 16-24 colors (~15-20s)
+                        </small>
                     </div>
 
                 </div>

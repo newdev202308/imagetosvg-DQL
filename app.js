@@ -523,7 +523,19 @@ async function convertWithPotrace() {
         return;
     }
 
-    svgPreview.innerHTML = '<div class="loading"><div class="spinner"></div><p>Converting with Potrace...</p></div>';
+    // Get color count for better loading message
+    const colorCount = currentAlgorithm === 'server-rgb' ?
+        (document.getElementById('serverColors').value || '8') : '2';
+    const estimatedTime = Math.ceil(parseInt(colorCount) * 1.5);
+
+    svgPreview.innerHTML = `<div class="loading">
+        <div class="spinner"></div>
+        <p>Converting with Potrace RGB...</p>
+        <small style="color: #666; margin-top: 10px; display: block;">
+            Processing ${colorCount} color layers (~${estimatedTime}s)<br>
+            Creating multiple colorable regions...
+        </small>
+    </div>`;
     downloadSection.style.display = 'none';
 
     try {
@@ -545,7 +557,7 @@ async function convertWithPotrace() {
         // Add Color Mode settings
         if (currentAlgorithm === 'server-rgb') {
             formData.append('colorMode', 'true');
-            formData.append('colors', document.getElementById('serverColors').value || '8');
+            formData.append('colors', colorCount);
         } else {
             formData.append('colorMode', 'false');
         }
@@ -568,7 +580,8 @@ async function convertWithPotrace() {
         if (result.success) {
             svgString = result.svg;
             displaySVG(result.svg);
-            showToast(`✅ Conversion successful with Potrace! (${result.stats.pathCount} paths, ${result.stats.sizeKB} KB)`, 'success');
+            const colorInfo = result.stats.colors ? ` from ${result.stats.colors} colors` : '';
+            showToast(`✅ Success! ${result.stats.pathCount} paths${colorInfo} (${result.stats.sizeKB} KB)`, 'success', 5000);
         } else {
             throw new Error(result.error || 'Conversion failed');
         }

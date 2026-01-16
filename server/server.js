@@ -102,7 +102,9 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
         }
 
         // --- COLOR MODE (Multi-layer Potrace) ---
-        console.log(`Starting Color Processing: ${colorCount} colors`);
+        console.log(`\n🎨 Starting Color Processing:`);
+        console.log(`   Colors: ${colorCount}`);
+        console.log(`   Estimated time: ${Math.ceil(colorCount * 1.5)}s`);
 
         // 1. Quantize Image using Sharp
         // We output to raw buffer to read pixels manually if needed, 
@@ -288,12 +290,12 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
 
             return new Promise((resolve) => {
                 const opts = {
-                    threshold: 128,
+                    threshold: 180,  // INCREASED from 128 - Only trace very dark pixels = Thinner lines
                     turdSize: 0,  // FORCE 0 - Keep ALL details
-                    turnPolicy: 'black',  // CHANGED from 'minority' - Better for line art
-                    alphaMax: 0.3,  // REDUCED from 0.5 - Even sharper corners
+                    turnPolicy: 'black',  // Better for line art
+                    alphaMax: 0.2,  // REDUCED from 0.3 - Ultra sharp corners
                     optCurve: true,  // Always optimize curves
-                    optTolerance: 0.05,  // REDUCED from 0.1 - MAXIMUM precision
+                    optTolerance: 0.02,  // REDUCED from 0.05 - Ultra precision
                     color: `rgb(${color.r},${color.g},${color.b})`,
                     background: 'transparent'
                 };
@@ -306,16 +308,23 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
             });
         });
 
+        console.log(`   Processing ${sortedColors.length} color layers...`);
         const layers = await Promise.all(promises);
         finalSVG += layers.join('\n');
         finalSVG += '</svg>';
+
+        const pathCount = (finalSVG.match(/<path/g) || []).length;
+        const sizeKB = (Buffer.byteLength(finalSVG, 'utf8') / 1024).toFixed(2);
+
+        console.log(`   ✅ Done! ${pathCount} paths, ${sizeKB} KB\n`);
 
         res.json({
             success: true,
             svg: finalSVG,
             stats: {
-                pathCount: (finalSVG.match(/<path/g) || []).length,
-                sizeKB: (Buffer.byteLength(finalSVG, 'utf8') / 1024).toFixed(2)
+                pathCount,
+                sizeKB,
+                colors: sortedColors.length
             }
         });
 
