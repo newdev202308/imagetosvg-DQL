@@ -176,14 +176,14 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
         // Let's do this!
 
         // --- 1. Extract Palette from Thumb ---
-        // Increased size for better detail capture (lines/eyes)
+        // INCREASED resolution for better line detection
         const thumb = await sharp(req.file.buffer)
-            .resize(100, 100, { fit: 'inside' })
+            .resize(200, 200, { fit: 'inside' })  // DOUBLED from 100x100
             .raw()
             .toBuffer();
 
         const colorMap = {};
-        const step = 24; // Smaller step = more precise colors (was 32)
+        const step = 16; // REDUCED from 24 - More precise color detection
 
         for (let i = 0; i < thumb.length; i += 3) { // RGB
             const r = Math.floor(thumb[i] / step) * step;
@@ -255,13 +255,9 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
         const width = info.width;
         const height = info.height;
 
-        const promises = sortedColors.map(async (color) => {
-            // Create 1-bit buffer for this color
-            // Sharp doesn't support creating image from raw bit array easily, 
-            // so we create a Buffer of standard Grayscale (0 or 255) then load into sharp?
-            // Faster: Create PBM (Portable Bitmap) header + raw bits. Potrace reads Buffer directly if valid image.
-            // But sharp input is easier.
-
+        const promises = sortedColors.map(async (color, colorIndex) => {
+            // Create 1-bit buffer for this color using CLOSEST COLOR approach
+            // This preserves anti-aliased edges better than threshold
             const maskBuffer = Buffer.alloc(width * height); // 1 byte per pixel (Grayscale)
 
             for (let i = 0; i < width * height; i++) {
@@ -269,13 +265,22 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
                 const g = rawFull[i * 4 + 1];
                 const b = rawFull[i * 4 + 2];
 
-                // Check distance
-                const dist = Math.sqrt(Math.pow(r - color.r, 2) + Math.pow(g - color.g, 2) + Math.pow(b - color.b, 2));
+                // Find closest color in palette
+                let minDist = Infinity;
+                let closestIndex = 0;
 
-                // Threshold for "is this color?"
-                // Lower threshold = Thinner, more precise lines (closer color match required)
-                // Higher threshold = Thicker lines (more pixels matched to this color)
-                maskBuffer[i] = (dist < 30) ? 0 : 255; // REDUCED from 45 to 30 for thinner, sharper lines
+                for (let j = 0; j < sortedColors.length; j++) {
+                    const c = sortedColors[j];
+                    const dist = Math.sqrt(Math.pow(r - c.r, 2) + Math.pow(g - c.g, 2) + Math.pow(b - c.b, 2));
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestIndex = j;
+                    }
+                }
+
+                // Pixel belongs to current color if it's the closest
+                // This creates sharp, precise boundaries
+                maskBuffer[i] = (closestIndex === colorIndex) ? 0 : 255;
             }
 
             // Trace this mask
@@ -284,11 +289,11 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
             return new Promise((resolve) => {
                 const opts = {
                     threshold: 128,
-                    turdSize: 0,  // FORCE 0 for RGB mode - Keep ALL details, no matter input setting
-                    turnPolicy: 'minority',
-                    alphaMax: 0.5,  // REDUCED from default 1.0 - Sharper corners, less smoothing
-                    optCurve: true,  // Always optimize
-                    optTolerance: 0.1,  // REDUCED from 0.2 - Higher precision, thinner lines
+                    turdSize: 0,  // FORCE 0 - Keep ALL details
+                    turnPolicy: 'black',  // CHANGED from 'minority' - Better for line art
+                    alphaMax: 0.3,  // REDUCED from 0.5 - Even sharper corners
+                    optCurve: true,  // Always optimize curves
+                    optTolerance: 0.05,  // REDUCED from 0.1 - MAXIMUM precision
                     color: `rgb(${color.r},${color.g},${color.b})`,
                     background: 'transparent'
                 };
