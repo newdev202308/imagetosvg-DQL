@@ -150,6 +150,13 @@ Tool **tự động phát hiện** loại ảnh và chọn preset phù hợp:
 - Settings tối ưu
 - Troubleshooting nhanh
 
+#### 💡 [COLORING_TIPS.md](COLORING_TIPS.md) - ⭐ Paths không khép kín
+- Giải quyết vùng tô không khép kín
+- So sánh Potrace vs ImageTracer
+- Tiền xử lý ảnh đầu vào
+- Post-process trong Illustrator
+- Tips & best practices
+
 #### 🧪 [TESTING_GUIDE.md](TESTING_GUIDE.md) - Testing procedures
 - Test scenarios
 - Validation checklist

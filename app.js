@@ -646,6 +646,19 @@ function convertToStrokeSVG(svgStr) {
             }
         }
 
+        // IMPORTANT: Ensure path is closed for coloring
+        // Auto-close paths by adding Z command if not already closed
+        let pathData = path.getAttribute('d');
+        if (pathData) {
+            pathData = pathData.trim();
+            // Check if path ends with Z or z (closed)
+            if (!pathData.endsWith('Z') && !pathData.endsWith('z')) {
+                // Auto-close the path
+                pathData += ' Z';
+                path.setAttribute('d', pathData);
+            }
+        }
+
         // Set coloring book attributes
         path.setAttribute('fill', fillColor);
         path.setAttribute('fill-rule', 'evenodd');
