@@ -608,9 +608,62 @@ function convertToSVG() {
     }, 100);
 }
 
+// Helper: Parse path data to get start and end points
+function getPathEndpoints(pathData) {
+    const commands = pathData.match(/[MLHVCSQTAZ][^MLHVCSQTAZ]*/gi);
+    if (!commands || commands.length === 0) return null;
+
+    let currentX = 0, currentY = 0;
+    let startX = 0, startY = 0;
+
+    // Get start point
+    const firstCmd = commands[0].trim();
+    const firstMatch = firstCmd.match(/M\s*([+-]?\d*\.?\d+)[,\s]+([+-]?\d*\.?\d+)/i);
+    if (firstMatch) {
+        startX = parseFloat(firstMatch[1]);
+        startY = parseFloat(firstMatch[2]);
+        currentX = startX;
+        currentY = startY;
+    }
+
+    // Get end point (scan through all commands)
+    for (let cmd of commands) {
+        cmd = cmd.trim();
+        const cmdType = cmd[0].toUpperCase();
+
+        if (cmdType === 'M') {
+            const match = cmd.match(/M\s*([+-]?\d*\.?\d+)[,\s]+([+-]?\d*\.?\d+)/i);
+            if (match) {
+                currentX = parseFloat(match[1]);
+                currentY = parseFloat(match[2]);
+            }
+        } else if (cmdType === 'L') {
+            const match = cmd.match(/L\s*([+-]?\d*\.?\d+)[,\s]+([+-]?\d*\.?\d+)/i);
+            if (match) {
+                currentX = parseFloat(match[1]);
+                currentY = parseFloat(match[2]);
+            }
+        } else if (cmdType === 'C') {
+            const match = cmd.match(/([+-]?\d*\.?\d+)[,\s]+([+-]?\d*\.?\d+)\s*$/);
+            if (match) {
+                currentX = parseFloat(match[1]);
+                currentY = parseFloat(match[2]);
+            }
+        }
+    }
+
+    return { startX, startY, endX: currentX, endY: currentY };
+}
+
+// Helper: Calculate distance between two points
+function distance(x1, y1, x2, y2) {
+    return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+}
+
 // Convert Fill-based SVG to Stroke-based SVG for Coloring Book
 function convertToStrokeSVG(svgStr) {
     const strokeWidth = document.getElementById('strokeWidth').value;
+    const fillGapsEnabled = document.getElementById('fillGaps')?.checked ?? true;
 
     // Parse SVG string
     const parser = new DOMParser();
@@ -647,15 +700,33 @@ function convertToStrokeSVG(svgStr) {
         }
 
         // IMPORTANT: Ensure path is closed for coloring
-        // Auto-close paths by adding Z command if not already closed
         let pathData = path.getAttribute('d');
-        if (pathData) {
+        if (pathData && fillGapsEnabled) {
             pathData = pathData.trim();
+
             // Check if path ends with Z or z (closed)
-            if (!pathData.endsWith('Z') && !pathData.endsWith('z')) {
-                // Auto-close the path
-                pathData += ' Z';
-                path.setAttribute('d', pathData);
+            const isClosed = pathData.endsWith('Z') || pathData.endsWith('z');
+
+            if (!isClosed) {
+                // Get start and end points
+                const endpoints = getPathEndpoints(pathData);
+
+                if (endpoints) {
+                    const { startX, startY, endX, endY } = endpoints;
+                    const gap = distance(startX, startY, endX, endY);
+
+                    // If gap is small (< 10px), auto-close with Z
+                    // If gap is larger, add explicit line back to start
+                    if (gap < 10) {
+                        pathData += ' Z';
+                    } else if (gap < 50) {
+                        // Medium gap: add line back to start, then close
+                        pathData += ` L ${startX},${startY} Z`;
+                    }
+                    // If gap > 50px, it's likely intentionally open, don't force close
+
+                    path.setAttribute('d', pathData);
+                }
             }
         }
 
