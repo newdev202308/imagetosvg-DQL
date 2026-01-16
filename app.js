@@ -398,6 +398,47 @@ window.selectOutputMode = function (mode) {
         strokeSettings.style.display = mode === 'stroke' ? 'block' : 'none';
     }
 
+    // IMPORTANT: Auto-recommend Potrace RGB for Coloring Book Mode
+    if (mode === 'stroke') {
+        // If not using server-rgb, show warning
+        if (currentAlgorithm !== 'server-rgb') {
+            showToast('⚠️ Coloring Book Mode works best with Potrace RGB (Server) to create separate colorable regions. Switch algorithm for best results!', 'warning', 8000);
+
+            // Show algorithm warning in stroke settings
+            const strokeSettings = document.querySelector('.stroke-settings');
+            if (strokeSettings) {
+                let algorithmWarning = strokeSettings.querySelector('.algorithm-warning');
+                if (!algorithmWarning) {
+                    algorithmWarning = document.createElement('div');
+                    algorithmWarning.className = 'algorithm-warning';
+                    algorithmWarning.style.cssText = 'background: #fff3cd; border: 2px solid #ffc107; padding: 12px; border-radius: 6px; margin-top: 15px; color: #856404;';
+                    strokeSettings.appendChild(algorithmWarning);
+                }
+                algorithmWarning.innerHTML = `
+                    <strong>⚠️ Important:</strong> Current algorithm may create only 1 path (can't color separate regions).<br>
+                    <strong>Recommended:</strong> Switch to <strong>Potrace RGB (Server)</strong> for multiple colorable regions.<br>
+                    <button onclick="selectAlgorithm('server-rgb')" style="margin-top: 8px; background: #ffc107; color: #000; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+                        🎨 Switch to Potrace RGB
+                    </button>
+                `;
+            }
+        } else {
+            // Remove warning if using correct algorithm
+            const strokeSettings = document.querySelector('.stroke-settings');
+            if (strokeSettings) {
+                const algorithmWarning = strokeSettings.querySelector('.algorithm-warning');
+                if (algorithmWarning) algorithmWarning.remove();
+            }
+        }
+    } else {
+        // Remove warning when switching to Fill Mode
+        const strokeSettings = document.querySelector('.stroke-settings');
+        if (strokeSettings) {
+            const algorithmWarning = strokeSettings.querySelector('.algorithm-warning');
+            if (algorithmWarning) algorithmWarning.remove();
+        }
+    }
+
     // Show feedback
     const modeText = mode === 'stroke' ? '🎨 Coloring Book Mode enabled - SVG will have stroke outlines' : '🖼️ Fill Mode enabled - Normal filled SVG';
     showToast(modeText, 'success');
@@ -426,6 +467,21 @@ window.selectAlgorithm = function (algoType) {
 
     // Update UI
     updateAlgorithmUI();
+
+    // If switching to Potrace RGB in Coloring Book Mode, remove warning
+    if (algoType === 'server-rgb' && outputMode === 'stroke') {
+        const strokeSettings = document.querySelector('.stroke-settings');
+        if (strokeSettings) {
+            const algorithmWarning = strokeSettings.querySelector('.algorithm-warning');
+            if (algorithmWarning) algorithmWarning.remove();
+        }
+        showToast('✅ Perfect! Potrace RGB will create multiple colorable regions for Coloring Book Mode', 'success', 5000);
+    }
+
+    // If switching away from Potrace RGB in Coloring Book Mode, show warning
+    if (algoType !== 'server-rgb' && outputMode === 'stroke') {
+        showToast('⚠️ Warning: This algorithm may create only 1 path. Use Potrace RGB for multiple colorable regions.', 'warning', 6000);
+    }
 }
 
 // Update UI based on algorithm selection
@@ -854,14 +910,14 @@ function resetApp() {
 }
 
 // Toast notification
-function showToast(message, type = 'success') {
+function showToast(message, type = 'success', duration = 3000) {
     toast.textContent = message;
     toast.className = `toast ${type}`;
     setTimeout(() => toast.classList.add('show'), 100);
 
     setTimeout(() => {
         toast.classList.remove('show');
-    }, 3000);
+    }, duration);
 }
 
 // Prevent default drag behavior on document

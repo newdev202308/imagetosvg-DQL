@@ -4,8 +4,9 @@ Công cụ chuyển đổi ảnh JPG, PNG, JPEG sang định dạng SVG vector c
 
 ## ✨ Tính năng
 
-- ⭐ **2 thuật toán chuyển đổi:**
-  - **Potrace (Server)** ⭐⭐⭐ - Giống convertio.co, TỐT NHẤT cho line art! Chất lượng 95%+
+- ⭐ **3 thuật toán chuyển đổi:**
+  - **Potrace RGB (Server)** ⭐⭐⭐⭐ - TỐT NHẤT cho Coloring Book! Tạo nhiều vùng tô riêng biệt
+  - **Potrace (Server)** ⭐⭐⭐ - Giống convertio.co, TỐT cho line art! Chất lượng 95%+
   - **ImageTracer (Client)** ⭐⭐ - Đa năng, chạy offline, không cần server
 - 🎨 **NEW: Coloring Book Mode** - Xuất SVG dạng stroke để tô màu trong apps khác!
 - ✅ Chuyển đổi ảnh JPG, PNG, JPEG sang SVG vector
@@ -163,6 +164,13 @@ Tool **tự động phát hiện** loại ảnh và chọn preset phù hợp:
 - Threshold adjustment
 - Tiền/hậu xử lý
 - Test case cụ thể
+
+#### 🔴 [SINGLE_PATH_FIX.md](SINGLE_PATH_FIX.md) - ⭐ SVG chỉ có 1 path (QUAN TRỌNG!)
+- **Fix SVG chỉ có 1 path → Không tô màu từng vùng được**
+- Dùng Potrace RGB (Server) cho multiple paths
+- So sánh algorithms
+- Settings tối ưu
+- Step-by-step guide
 
 #### 🧪 [TESTING_GUIDE.md](TESTING_GUIDE.md) - Testing procedures
 - Test scenarios
