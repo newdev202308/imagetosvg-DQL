@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Coloring Book SVG Output</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #230b59;
+            border-bottom: 3px solid #28a745;
+            padding-bottom: 10px;
+        }
+        .test-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+        }
+        .pass {
+            color: #28a745;
+            font-weight: bold;
+        }
+        .fail {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        .svg-preview {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            text-align: center;
+        }
+        .code-block {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            margin: 10px 0;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .checklist {
+            list-style: none;
+            padding: 0;
+        }
+        .checklist li {
+            padding: 8px 0;
+        }
+        .checklist li:before {
+            content: "✓ ";
+            color: #28a745;
+            font-weight: bold;
+            margin-right: 8px;
+        }
+        svg {
+            border: 1px solid #ddd;
+            background: white;
+            max-width: 100%;
+            height: auto;
+        }
+        svg path {
+            cursor: pointer;
+            transition: fill 0.3s;
+        }
+        svg path:hover {
+            fill: #ffeb3b !important;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Test Coloring Book SVG Output</h1>
+
+        <div class="info-box">
+            <h3>Purpose:</h3>
+            <p>This page helps verify that SVG output from Coloring Book Mode meets all requirements for coloring apps.</p>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 Requirements Checklist</h2>
+            <ul class="checklist">
+                <li>Only &lt;path&gt; elements (no g, rect, circle, ellipse, polygon, line, polyline, mask, clipPath, defs, use)</li>
+                <li>Each path has fill attribute (white for colorable areas, black for details)</li>
+                <li>Each path has fill-rule="evenodd"</li>
+                <li>Each path has stroke="#000000"</li>
+                <li>Each path has stroke-width</li>
+                <li>Each path has stroke-linecap="round"</li>
+                <li>Each path has stroke-linejoin="round"</li>
+                <li>Paths are closed regions (end with Z or naturally closed)</li>
+                <li>Smooth curves, minimal anchor points</li>
+            </ul>
+        </div>
+
+        <div class="test-section">
+            <h2>🧪 Test SVG</h2>
+            <p>Paste your SVG output here and click "Validate"</p>
+            <textarea id="svgInput" style="width: 100%; height: 200px; font-family: monospace; padding: 10px; border: 2px solid #ddd; border-radius: 5px;" placeholder="Paste SVG code here..."></textarea>
+            <button onclick="validateSVG()">🔍 Validate SVG</button>
+            <button onclick="testColorability()">🎨 Test Colorability</button>
+            <button onclick="clearAll()">🔄 Clear</button>
+        </div>
+
+        <div id="validationResults" class="test-section" style="display:none;">
+            <h2>✅ Validation Results</h2>
+            <div id="resultsContent"></div>
+        </div>
+
+        <div id="previewSection" class="test-section" style="display:none;">
+            <h2>👁️ Preview (Hover to test colorability)</h2>
+            <div class="svg-preview" id="svgPreview"></div>
+            <p style="color: #666; font-style: italic;">Hover over paths to see if they're colorable (should turn yellow)</p>
+        </div>
+
+        <div class="test-section">
+            <h2>📖 Example Valid SVG</h2>
+            <div class="code-block">
+&lt;svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"&gt;
+  &lt;!-- Colorable area (white fill) --&gt;
+  &lt;path d="M10,10 L90,10 L90,90 L10,90 Z"
+        fill="#FFFFFF"
+        fill-rule="evenodd"
+        stroke="#000000"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"/&gt;
+
+  &lt;!-- Detail area (black fill - like an eye) --&gt;
+  &lt;path d="M45,45 L55,45 L55,55 L45,55 Z"
+        fill="#000000"
+        fill-rule="evenodd"
+        stroke="#000000"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"/&gt;
+&lt;/svg&gt;
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function validateSVG() {
+            const svgText = document.getElementById('svgInput').value.trim();
+
+            if (!svgText) {
+                alert('Please paste SVG code first!');
+                return;
+            }
+
+            const results = [];
+            let passed = 0;
+            let failed = 0;
+
+            try {
+                // Parse SVG
+                const parser = new DOMParser();
+                const svgDoc = parser.parseFromString(svgText, 'image/svg+xml');
+                const svgElement = svgDoc.documentElement;
+
+                // Check 1: Only path elements
+                const nonPathElements = svgElement.querySelectorAll('g, rect, circle, ellipse, polygon, polyline, line, mask, clipPath, defs, use');
+                if (nonPathElements.length === 0) {
+                    results.push('<div class="pass">✓ No forbidden elements (g, rect, circle, etc.)</div>');
+                    passed++;
+                } else {
+                    results.push(`<div class="fail">✗ Found ${nonPathElements.length} forbidden elements</div>`);
+                    failed++;
+                }
+
+                // Check 2: All paths have required attributes
+                const paths = svgElement.querySelectorAll('path');
+                results.push(`<div style="margin: 10px 0;"><strong>Found ${paths.length} path(s)</strong></div>`);
+
+                let pathsPassed = 0;
+                let pathsFailed = 0;
+
+                paths.forEach((path, index) => {
+                    const pathResults = [];
+                    let pathValid = true;
+
+                    // Check fill
+                    const fill = path.getAttribute('fill');
+                    if (fill) {
+                        pathResults.push(`fill="${fill}"`);
+                    } else {
+                        pathResults.push('<span class="fail">missing fill</span>');
+                        pathValid = false;
+                    }
+
+                    // Check fill-rule
+                    const fillRule = path.getAttribute('fill-rule');
+                    if (fillRule === 'evenodd') {
+                        pathResults.push(`fill-rule="evenodd"`);
+                    } else {
+                        pathResults.push('<span class="fail">missing/wrong fill-rule</span>');
+                        pathValid = false;
+                    }
+
+                    // Check stroke
+                    const stroke = path.getAttribute('stroke');
+                    if (stroke === '#000000' || stroke === 'black' || stroke === '#000') {
+                        pathResults.push(`stroke="${stroke}"`);
+                    } else {
+                        pathResults.push('<span class="fail">missing/wrong stroke</span>');
+                        pathValid = false;
+                    }
+
+                    // Check stroke-width
+                    const strokeWidth = path.getAttribute('stroke-width');
+                    if (strokeWidth) {
+                        pathResults.push(`stroke-width="${strokeWidth}"`);
+                    } else {
+                        pathResults.push('<span class="fail">missing stroke-width</span>');
+                        pathValid = false;
+                    }
+
+                    // Check stroke-linecap
+                    const linecap = path.getAttribute('stroke-linecap');
+                    if (linecap === 'round') {
+                        pathResults.push(`stroke-linecap="round"`);
+                    } else {
+                        pathResults.push('<span class="fail">missing/wrong stroke-linecap</span>');
+                        pathValid = false;
+                    }
+
+                    // Check stroke-linejoin
+                    const linejoin = path.getAttribute('stroke-linejoin');
+                    if (linejoin === 'round') {
+                        pathResults.push(`stroke-linejoin="round"`);
+                    } else {
+                        pathResults.push('<span class="fail">missing/wrong stroke-linejoin</span>');
+                        pathValid = false;
+                    }
+
+                    if (pathValid) {
+                        pathsPassed++;
+                        results.push(`<div class="pass">✓ Path ${index + 1}: ${pathResults.join(', ')}</div>`);
+                    } else {
+                        pathsFailed++;
+                        results.push(`<div class="fail">✗ Path ${index + 1}: ${pathResults.join(', ')}</div>`);
+                    }
+                });
+
+                // Summary
+                results.unshift(`<h3>Summary:</h3>`);
+                results.unshift(`<div style="font-size: 1.2em; margin: 15px 0;">
+                    <span class="pass">${pathsPassed} paths valid</span> |
+                    <span class="fail">${pathsFailed} paths invalid</span>
+                </div>`);
+
+                if (pathsFailed === 0 && failed === 0) {
+                    results.unshift(`<div style="background: #d4edda; color: #155724; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <strong>🎉 Perfect! SVG meets all requirements for coloring apps!</strong>
+                    </div>`);
+                }
+
+                // Display results
+                document.getElementById('resultsContent').innerHTML = results.join('');
+                document.getElementById('validationResults').style.display = 'block';
+
+            } catch (error) {
+                document.getElementById('resultsContent').innerHTML = `<div class="fail">Error parsing SVG: ${error.message}</div>`;
+                document.getElementById('validationResults').style.display = 'block';
+            }
+        }
+
+        function testColorability() {
+            const svgText = document.getElementById('svgInput').value.trim();
+
+            if (!svgText) {
+                alert('Please paste SVG code first!');
+                return;
+            }
+
+            document.getElementById('svgPreview').innerHTML = svgText;
+            document.getElementById('previewSection').style.display = 'block';
+
+            // Add click handlers to paths for color testing
+            const paths = document.querySelectorAll('#svgPreview path');
+            paths.forEach(path => {
+                path.addEventListener('click', function() {
+                    const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    this.setAttribute('fill', randomColor);
+                });
+            });
+        }
+
+        function clearAll() {
+            document.getElementById('svgInput').value = '';
+            document.getElementById('validationResults').style.display = 'none';
+            document.getElementById('previewSection').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

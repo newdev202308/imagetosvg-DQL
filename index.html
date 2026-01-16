@@ -52,6 +52,35 @@
                     </div>
                 </div>
 
+                <!-- Coloring Book Mode Toggle -->
+                <div class="coloring-mode-section">
+                    <h3>🎨 Output Mode</h3>
+                    <div class="mode-toggle-container">
+                        <div class="mode-option" data-mode="fill" onclick="selectOutputMode('fill')">
+                            <i class="fa-solid fa-fill-drip"></i>
+                            <div class="mode-label">Fill Mode</div>
+                            <small>Normal SVG (Filled paths)</small>
+                        </div>
+                        <div class="mode-option active" data-mode="stroke" onclick="selectOutputMode('stroke')">
+                            <i class="fa-solid fa-paintbrush"></i>
+                            <div class="mode-label">Coloring Book Mode</div>
+                            <small>Stroke outlines for coloring apps</small>
+                        </div>
+                    </div>
+
+                    <!-- Stroke Settings (visible in Coloring Book Mode) -->
+                    <div class="stroke-settings" style="margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 8px;">
+                        <label for="strokeWidth">Stroke Width: <span id="strokeWidthValue">2</span>px</label>
+                        <input type="range" id="strokeWidth" min="1" max="5" value="2" step="0.5">
+                        <small style="color: #856404; display: block; margin-top: 8px;">
+                            ✓ Only &lt;path&gt; elements<br>
+                            ✓ Each path = 1 colorable region<br>
+                            ✓ fill="#FFFFFF" (tap to change color)<br>
+                            ✓ fill-rule="evenodd" for all paths
+                        </small>
+                    </div>
+                </div>
+
                 <!-- Algorithm Selection -->
                 <!-- Algorithm Toggle (Available for Advanced Users) -->
                 <div class="algorithm-section">

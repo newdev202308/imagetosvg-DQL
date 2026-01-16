@@ -267,6 +267,83 @@ button {
     box-shadow: 0 4px 10px rgba(255, 84, 33, 0.2);
 }
 
+/* Coloring Mode Section */
+.coloring-mode-section {
+    background: #f8f9fa;
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 20px;
+    border: 2px solid #e9ecef;
+}
+
+.coloring-mode-section h3 {
+    color: var(--primary-color);
+    margin-bottom: 15px;
+    font-size: 1.2rem;
+}
+
+.mode-toggle-container {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 10px;
+}
+
+.mode-option {
+    flex: 1;
+    padding: 15px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.3s;
+}
+
+.mode-option:hover {
+    border-color: var(--accent-color);
+    transform: translateY(-2px);
+}
+
+.mode-option.active {
+    background: var(--accent-color);
+    color: white;
+    border-color: var(--accent-color);
+    box-shadow: 0 4px 10px rgba(40, 167, 69, 0.3);
+}
+
+.mode-option i {
+    display: block;
+    font-size: 2em;
+    margin-bottom: 8px;
+}
+
+.mode-label {
+    font-weight: 600;
+    font-size: 1em;
+    margin-bottom: 4px;
+}
+
+.mode-option small {
+    display: block;
+    opacity: 0.8;
+    font-size: 0.85em;
+}
+
+.mode-option.active small {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.stroke-settings {
+    display: block;
+}
+
+.stroke-settings label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #856404;
+}
+
 /* Algorithm Toggle */
 .algorithm-section {
     background: var(--primary-color);
@@ -508,6 +585,14 @@ footer {
     .settings-grid {
         grid-template-columns: 1fr;
         /* 1 column on mobile */
+    }
+
+    .mode-toggle-container {
+        flex-direction: column;
+    }
+
+    .mode-option {
+        width: 100%;
     }
 }
 

@@ -3,6 +3,7 @@ let uploadedImage = null;
 let svgString = '';
 let originalFileName = '';
 let useServerAPI = true; // Toggle between client-side and server-side - DEFAULT: Potrace (Server)
+let outputMode = 'stroke'; // 'fill' or 'stroke' - DEFAULT: Coloring Book Mode
 // Server API URL - Auto-detect based on environment
 let serverURL = '';
 if (window.location.protocol === 'file:') {
@@ -54,10 +55,10 @@ const presets = {
         options: {
             colorsampling: 0,      // Disabled for black/white
             numberofcolors: 2,     // Just black and white
-            blur: 1,               // Light blur for smoother curves
+            blur: 0,               // No blur for sharp coloring book lines
             ltres: 128,            // Standard threshold
             qtres: 0.5,            // LOWER = smoother curves (more curve points)
-            pathomit: 1            // Keep almost all details
+            pathomit: 2            // Remove very small paths
         }
     },
     logo: {
@@ -106,12 +107,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize Selection
     selectAlgorithm('server'); // Default to Server (Potrace)
+    selectOutputMode('stroke'); // Default to Coloring Book Mode
 
     // Color Slider Listener
     const colorSlider = document.getElementById('serverColors');
     if (colorSlider) {
         colorSlider.addEventListener('input', (e) => {
             document.getElementById('serverColorsValue').textContent = e.target.value;
+        });
+    }
+
+    // Stroke Width Slider Listener
+    const strokeWidthSlider = document.getElementById('strokeWidth');
+    if (strokeWidthSlider) {
+        strokeWidthSlider.addEventListener('input', (e) => {
+            document.getElementById('strokeWidthValue').textContent = e.target.value;
         });
     }
 });
@@ -372,6 +382,27 @@ function displayOriginalImage(imageSrc) {
     }, 500);
 }
 
+// Output Mode Selection (Fill vs Stroke for Coloring Book)
+window.selectOutputMode = function (mode) {
+    outputMode = mode;
+
+    // Update Buttons
+    document.querySelectorAll('.mode-option').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.dataset.mode === mode) btn.classList.add('active');
+    });
+
+    // Show/hide stroke settings
+    const strokeSettings = document.querySelector('.stroke-settings');
+    if (strokeSettings) {
+        strokeSettings.style.display = mode === 'stroke' ? 'block' : 'none';
+    }
+
+    // Show feedback
+    const modeText = mode === 'stroke' ? '🎨 Coloring Book Mode enabled - SVG will have stroke outlines' : '🖼️ Fill Mode enabled - Normal filled SVG';
+    showToast(modeText, 'success');
+}
+
 // Algorithm Selection
 let currentAlgorithm = 'server'; // Default: Potrace (Server)
 
@@ -577,8 +608,73 @@ function convertToSVG() {
     }, 100);
 }
 
+// Convert Fill-based SVG to Stroke-based SVG for Coloring Book
+function convertToStrokeSVG(svgStr) {
+    const strokeWidth = document.getElementById('strokeWidth').value;
+
+    // Parse SVG string
+    const parser = new DOMParser();
+    const svgDoc = parser.parseFromString(svgStr, 'image/svg+xml');
+    const svgElement = svgDoc.documentElement;
+
+    // Remove all non-path elements (keep only paths)
+    const nonPathElements = svgElement.querySelectorAll('g, rect, circle, ellipse, polygon, polyline, line, mask, clipPath, defs, use');
+    nonPathElements.forEach(el => el.remove());
+
+    // Process all path elements
+    const paths = svgElement.querySelectorAll('path');
+
+    paths.forEach(path => {
+        const currentFill = path.getAttribute('fill');
+        const isFillNone = currentFill === 'none' || currentFill === 'transparent';
+
+        // For coloring book: each path needs both fill (for coloring area) and stroke (outline)
+        // Default: white fill + black stroke
+        // Exception: if original fill is black/dark, keep it (e.g., eyes)
+
+        let fillColor = '#FFFFFF'; // Default white for coloring areas
+
+        // Check if original fill was black/very dark (keep for details like eyes)
+        if (currentFill && !isFillNone) {
+            const isBlackish = currentFill.toLowerCase().includes('#000') ||
+                             currentFill.toLowerCase() === 'black' ||
+                             currentFill.toLowerCase().includes('rgb(0') ||
+                             (currentFill.startsWith('#') && parseInt(currentFill.substring(1), 16) < 0x333333);
+
+            if (isBlackish) {
+                fillColor = '#000000'; // Keep black for details
+            }
+        }
+
+        // Set coloring book attributes
+        path.setAttribute('fill', fillColor);
+        path.setAttribute('fill-rule', 'evenodd');
+        path.setAttribute('stroke', '#000000');
+        path.setAttribute('stroke-width', strokeWidth);
+        path.setAttribute('stroke-linecap', 'round');
+        path.setAttribute('stroke-linejoin', 'round');
+
+        // Remove any opacity/transform that might interfere
+        path.removeAttribute('opacity');
+        path.removeAttribute('fill-opacity');
+        path.removeAttribute('stroke-opacity');
+    });
+
+    // Serialize back to string
+    const serializer = new XMLSerializer();
+    return serializer.serializeToString(svgElement);
+}
+
 // Display SVG
 function displaySVG(svgStr) {
+    // Apply coloring book mode if enabled
+    if (outputMode === 'stroke') {
+        svgStr = convertToStrokeSVG(svgStr);
+    }
+
+    // Store the final SVG string for download
+    svgString = svgStr;
+
     svgPreview.innerHTML = svgStr;
 
     // Get SVG element and calculate size
@@ -592,8 +688,10 @@ function displaySVG(svgStr) {
         const sizeInBytes = new Blob([svgStr]).size;
         const sizeInKB = (sizeInBytes / 1024).toFixed(2);
 
+        // Show mode in info
+        const modeLabel = outputMode === 'stroke' ? ' | Mode: Coloring Book' : ' | Mode: Fill';
         document.getElementById('svgInfo').textContent =
-            `Size: ${width} × ${height}px | Paths: ${paths} | Size: ${sizeInKB} KB`;
+            `Size: ${width} × ${height}px | Paths: ${paths} | Size: ${sizeInKB} KB${modeLabel}`;
     }
 
     // Show download section
@@ -629,7 +727,9 @@ function toggleCodeViewer() {
 
     if (codeViewer.style.display === 'none') {
         codeViewer.style.display = 'block';
-        svgCode.value = svgString;
+        // Format SVG code for better readability
+        const formattedSVG = svgString.replace(/></g, '>\n<');
+        svgCode.value = formattedSVG;
         viewCodeBtn.textContent = '✖️ Close Code';
     } else {
         codeViewer.style.display = 'none';

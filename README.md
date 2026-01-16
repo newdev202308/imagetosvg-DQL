@@ -7,6 +7,7 @@ Công cụ chuyển đổi ảnh JPG, PNG, JPEG sang định dạng SVG vector c
 - ⭐ **2 thuật toán chuyển đổi:**
   - **Potrace (Server)** ⭐⭐⭐ - Giống convertio.co, TỐT NHẤT cho line art! Chất lượng 95%+
   - **ImageTracer (Client)** ⭐⭐ - Đa năng, chạy offline, không cần server
+- 🎨 **NEW: Coloring Book Mode** - Xuất SVG dạng stroke để tô màu trong apps khác!
 - ✅ Chuyển đổi ảnh JPG, PNG, JPEG sang SVG vector
 - ✅ **Auto-detect** loại ảnh và chọn preset tối ưu
 - ✅ Giao diện đẹp, hiện đại và dễ sử dụng
@@ -128,6 +129,37 @@ Tool **tự động phát hiện** loại ảnh và chọn preset phù hợp:
 - **Tự động áp dụng:** Số màu: 4, Quality: 2
 
 ## 📖 Tài liệu chi tiết
+
+### 🎨 Coloring Book Mode (NEW!)
+
+#### 📘 [COLORING_BOOK_MODE.md](COLORING_BOOK_MODE.md) - Hướng dẫn đầy đủ
+- 🎨 Hướng dẫn sử dụng Coloring Book Mode
+- 🔄 So sánh Fill Mode vs Stroke Mode
+- 💡 Tips cho kết quả tốt nhất
+- 🎯 Use cases cụ thể
+- ❓ FAQ và troubleshooting
+
+#### 📋 [COLORING_APP_REQUIREMENTS.md](COLORING_APP_REQUIREMENTS.md) - Yêu cầu kỹ thuật
+- ✅ Chi tiết tất cả requirements
+- 🔍 Ví dụ output hợp lệ
+- 📊 So sánh before/after
+- 🛠️ Implementation details
+
+#### 🚀 [QUICK_START_COLORING.md](QUICK_START_COLORING.md) - Quick reference
+- 5 bước đơn giản
+- Settings tối ưu
+- Troubleshooting nhanh
+
+#### 🧪 [TESTING_GUIDE.md](TESTING_GUIDE.md) - Testing procedures
+- Test scenarios
+- Validation checklist
+- Performance testing
+- Report template
+
+#### 📝 [CHANGELOG_COLORING_MODE.md](CHANGELOG_COLORING_MODE.md) - Chi tiết thay đổi
+- Tất cả updates
+- Code references
+- Technical notes
 
 ### 🎨 [SMOOTH_CURVES_GUIDE.md](SMOOTH_CURVES_GUIDE.md) - ⭐ ĐỌC NÀY NẾU ĐƯỜNG CONG BỊ GÓC CẠNH!
 - ❗ Khắc phục đường cong góc cạnh, không mượt
