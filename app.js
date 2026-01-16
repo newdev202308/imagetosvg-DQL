@@ -58,7 +58,7 @@ const presets = {
             blur: 0,               // No blur for sharp coloring book lines
             ltres: 128,            // Standard threshold
             qtres: 0.5,            // LOWER = smoother curves (more curve points)
-            pathomit: 2            // Remove very small paths
+            pathomit: 0            // Keep ALL paths including small details (clouds, etc.)
         }
     },
     logo: {

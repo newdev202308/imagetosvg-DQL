@@ -157,6 +157,13 @@ Tool **tự động phát hiện** loại ảnh và chọn preset phù hợp:
 - Post-process trong Illustrator
 - Tips & best practices
 
+#### ⚠️ [MISSING_DETAILS_FIX.md](MISSING_DETAILS_FIX.md) - Chi tiết nhỏ bị mất
+- Fix đám mây, hoa văn bị mất
+- Path Omit settings
+- Threshold adjustment
+- Tiền/hậu xử lý
+- Test case cụ thể
+
 #### 🧪 [TESTING_GUIDE.md](TESTING_GUIDE.md) - Testing procedures
 - Test scenarios
 - Validation checklist
