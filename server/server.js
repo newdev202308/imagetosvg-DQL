@@ -295,7 +295,7 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
                     turnPolicy: 'black',  // Better for line art
                     alphaMax: 0.2,  // REDUCED from 0.3 - Ultra sharp corners
                     optCurve: true,  // Always optimize curves
-                    optTolerance: 0.02,  // REDUCED from 0.05 - Ultra precision
+                    optTolerance: 0.1,  // Balanced for smooth curves with detail preservation
                     color: `rgb(${color.r},${color.g},${color.b})`,
                     background: 'transparent'
                 };

@@ -759,9 +759,9 @@ function convertToStrokeSVG(svgStr) {
         // Check if original fill was black/very dark (keep for details like eyes)
         if (currentFill && !isFillNone) {
             const isBlackish = currentFill.toLowerCase().includes('#000') ||
-                             currentFill.toLowerCase() === 'black' ||
-                             currentFill.toLowerCase().includes('rgb(0') ||
-                             (currentFill.startsWith('#') && parseInt(currentFill.substring(1), 16) < 0x333333);
+                currentFill.toLowerCase() === 'black' ||
+                currentFill.toLowerCase().includes('rgb(0') ||
+                (currentFill.startsWith('#') && parseInt(currentFill.substring(1), 16) < 0x333333);
 
             if (isBlackish) {
                 fillColor = '#000000'; // Keep black for details
@@ -806,6 +806,7 @@ function convertToStrokeSVG(svgStr) {
         path.setAttribute('stroke-width', strokeWidth);
         path.setAttribute('stroke-linecap', 'round');
         path.setAttribute('stroke-linejoin', 'round');
+        path.setAttribute('stroke-miterlimit', '10');
 
         // Remove any opacity/transform that might interfere
         path.removeAttribute('opacity');
