@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initializePresets();
 
     // Initialize Selection
-    selectAlgorithm('server'); // Default to Server (Potrace)
+    selectAlgorithm('server-rgb'); // Default to Potrace RGB (Server) - Best for Coloring Book
     selectOutputMode('stroke'); // Default to Coloring Book Mode
 
     // Color Slider Listener
@@ -445,7 +445,7 @@ window.selectOutputMode = function (mode) {
 }
 
 // Algorithm Selection
-let currentAlgorithm = 'server'; // Default: Potrace (Server)
+let currentAlgorithm = 'server-rgb'; // Default: Potrace RGB (Server) - Best for Coloring Book
 
 // Initialize Algorithm Selection
 function initializeAlgorithmSelection() {
