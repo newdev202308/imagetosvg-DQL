@@ -124,6 +124,14 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('strokeWidthValue').textContent = e.target.value;
         });
     }
+
+    // Quality (optTolerance) Slider Listener
+    const optToleranceSlider = document.getElementById('optTolerance');
+    if (optToleranceSlider) {
+        optToleranceSlider.addEventListener('input', (e) => {
+            document.getElementById('optToleranceValue').textContent = e.target.value;
+        });
+    }
 });
 
 // Initialize preset buttons
@@ -550,7 +558,12 @@ async function convertWithPotrace() {
         // Add Potrace settings
         formData.append('threshold', ltresInput.value);
         formData.append('turdSize', document.getElementById('pathomit').value || '2');
-        formData.append('optTolerance', '0.2');
+
+        // Get optTolerance from slider (default 0.1 for high accuracy)
+        const optToleranceInput = document.getElementById('optTolerance');
+        const optToleranceValue = optToleranceInput ? optToleranceInput.value : '0.1';
+        formData.append('optTolerance', optToleranceValue);
+
         formData.append('turnPolicy', 'minority');
         formData.append('optCurve', 'true');
 

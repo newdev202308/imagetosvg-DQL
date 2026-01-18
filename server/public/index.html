@@ -168,6 +168,15 @@
                             More colors = More separate paths (up to 20+ regions)<br>
                             ⏱️ Processing time: 2-4 colors (~3s), 8-12 colors (~8s), 16-24 colors (~15-20s)
                         </small>
+
+                        <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid #c8e6c9;">
+                            <label for="optTolerance">Quality (Curve Accuracy): <span id="optToleranceValue">0.1</span></label>
+                            <input type="range" id="optTolerance" min="0.05" max="0.5" value="0.1" step="0.05">
+                            <small style="color: #666;">
+                                Lower = More accurate (larger file) | Higher = Smoother (smaller file)<br>
+                                Recommended: 0.1 for high accuracy, 0.2 for balanced
+                            </small>
+                        </div>
                     </div>
 
                 </div>
@@ -269,7 +278,7 @@
 
     <!-- ImageTracer.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.min.js"></script>
-    <script src="app.js?v=20260118"></script>
+    <script src="app.js?v=20260118b"></script>
 </body>
 
 </html>
