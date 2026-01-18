@@ -114,33 +114,54 @@ function createComponentMask(componentPixels, width, height) {
 
 // Get bounding box from path data
 function getPathBoundingBox(pathData) {
-    const coords = [];
+    try {
+        const coords = [];
 
-    // Extract all coordinate pairs from path data
-    const matches = pathData.matchAll(/([+-]?\d*\.?\d+)[,\s]+([+-]?\d*\.?\d+)/g);
-    for (const match of matches) {
-        coords.push({
-            x: parseFloat(match[1]),
-            y: parseFloat(match[2])
-        });
-    }
+        // Extract all coordinate pairs from path data
+        // Use matchAll if available, otherwise use regex.exec loop
+        const coordRegex = /([+-]?\d*\.?\d+)[,\s]+([+-]?\d*\.?\d+)/g;
 
-    if (coords.length === 0) {
+        if (pathData.matchAll) {
+            const matches = pathData.matchAll(coordRegex);
+            for (const match of matches) {
+                const x = parseFloat(match[1]);
+                const y = parseFloat(match[2]);
+                if (!isNaN(x) && !isNaN(y)) {
+                    coords.push({ x, y });
+                }
+            }
+        } else {
+            // Fallback for older Node.js versions
+            let match;
+            while ((match = coordRegex.exec(pathData)) !== null) {
+                const x = parseFloat(match[1]);
+                const y = parseFloat(match[2]);
+                if (!isNaN(x) && !isNaN(y)) {
+                    coords.push({ x, y });
+                }
+            }
+        }
+
+        if (coords.length === 0) {
+            return { minX: 0, minY: 0, maxX: 0, maxY: 0, area: 0 };
+        }
+
+        const minX = Math.min(...coords.map(c => c.x));
+        const maxX = Math.max(...coords.map(c => c.x));
+        const minY = Math.min(...coords.map(c => c.y));
+        const maxY = Math.max(...coords.map(c => c.y));
+
+        return {
+            minX,
+            minY,
+            maxX,
+            maxY,
+            area: (maxX - minX) * (maxY - minY)
+        };
+    } catch (error) {
+        console.error(`Error calculating bounding box: ${error.message}`);
         return { minX: 0, minY: 0, maxX: 0, maxY: 0, area: 0 };
     }
-
-    const minX = Math.min(...coords.map(c => c.x));
-    const maxX = Math.max(...coords.map(c => c.x));
-    const minY = Math.min(...coords.map(c => c.y));
-    const maxY = Math.max(...coords.map(c => c.y));
-
-    return {
-        minX,
-        minY,
-        maxX,
-        maxY,
-        area: (maxX - minX) * (maxY - minY)
-    };
 }
 
 // Check if bbox1 contains bbox2 (bbox1 is parent, bbox2 is child)
@@ -154,95 +175,124 @@ function bboxContains(parent, child) {
 
 // Build nested structure from flat path list
 function buildNestedStructure(paths) {
-    // Sort by area descending (largest first = potential parents)
-    const sorted = [...paths].sort((a, b) => b.bbox.area - a.bbox.area);
+    try {
+        if (!paths || paths.length === 0) {
+            return [];
+        }
 
-    // Build parent-child relationships
-    const nodes = sorted.map((path, index) => ({
-        ...path,
-        id: index,
-        children: []
-    }));
+        // Sort by area descending (largest first = potential parents)
+        const sorted = [...paths].sort((a, b) => {
+            const aArea = (a.bbox && a.bbox.area) || 0;
+            const bArea = (b.bbox && b.bbox.area) || 0;
+            return bArea - aArea;
+        });
 
-    // For each node, find its immediate parent
-    for (let i = nodes.length - 1; i >= 0; i--) {
-        const child = nodes[i];
+        // Build parent-child relationships
+        const nodes = sorted.map((path, index) => ({
+            ...path,
+            id: index,
+            children: []
+        }));
 
-        // Find smallest parent that contains this child
-        let immediateParent = null;
-        let smallestParentArea = Infinity;
+        // For each node, find its immediate parent
+        for (let i = nodes.length - 1; i >= 0; i--) {
+            const child = nodes[i];
+            if (!child.bbox) continue;
 
-        for (let j = 0; j < i; j++) {
-            const parent = nodes[j];
+            // Find smallest parent that contains this child
+            let immediateParent = null;
+            let smallestParentArea = Infinity;
 
-            if (bboxContains(parent.bbox, child.bbox)) {
-                if (parent.bbox.area < smallestParentArea) {
-                    immediateParent = parent;
-                    smallestParentArea = parent.bbox.area;
+            for (let j = 0; j < i; j++) {
+                const parent = nodes[j];
+                if (!parent.bbox) continue;
+
+                if (bboxContains(parent.bbox, child.bbox)) {
+                    if (parent.bbox.area < smallestParentArea) {
+                        immediateParent = parent;
+                        smallestParentArea = parent.bbox.area;
+                    }
                 }
             }
-        }
 
-        if (immediateParent) {
-            immediateParent.children.push(child);
-        }
-    }
-
-    // Return only root nodes (those without parents)
-    const roots = nodes.filter((node, index) => {
-        // Check if this node is a child of any other node
-        for (let j = 0; j < index; j++) {
-            if (nodes[j].children.includes(node)) {
-                return false;
+            if (immediateParent) {
+                immediateParent.children.push(child);
             }
         }
-        return true;
-    });
 
-    return roots;
+        // Return only root nodes (those without parents)
+        const roots = nodes.filter((node, index) => {
+            // Check if this node is a child of any other node
+            for (let j = 0; j < index; j++) {
+                if (nodes[j].children.includes(node)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        return roots;
+    } catch (error) {
+        console.error(`Error building nested structure: ${error.message}`);
+        return [];
+    }
 }
 
 // Render nested paths with <g> grouping and Adobe Illustrator style
 function renderNestedPaths(roots, width, height) {
-    let svg = `<g id="BACKGROUND">\n  <rect style="fill:#FFFFFF;" width="${width}" height="${height}"/>\n</g>\n`;
-    svg += `<g id="OBJECTS">\n`;
+    try {
+        let svg = `<g id="BACKGROUND">\n  <rect style="fill:#FFFFFF;" width="${width}" height="${height}"/>\n</g>\n`;
+        svg += `<g id="OBJECTS">\n`;
 
-    function renderNode(node, depth = 1) {
-        const indent = '  '.repeat(depth);
+        function renderNode(node, depth = 1) {
+            try {
+                if (!node || !node.fullTag) return;
 
-        // Extract attributes from fullTag
-        const dMatch = node.fullTag.match(/d="([^"]*)"/);
-        const fillMatch = node.fullTag.match(/fill="([^"]*)"/);
+                const indent = '  '.repeat(depth);
 
-        const d = dMatch ? dMatch[1] : '';
-        const fill = fillMatch ? fillMatch[1] : '#FFFFFF';
+                // Extract attributes from fullTag
+                const dMatch = node.fullTag.match(/d="([^"]*)"/);
+                const fillMatch = node.fullTag.match(/fill="([^"]*)"/);
 
-        // Adobe Illustrator style attributes
-        const style = `fill:${fill};stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;`;
+                const d = dMatch ? dMatch[1] : '';
+                const fill = fillMatch ? fillMatch[1] : '#FFFFFF';
 
-        if (node.children.length > 0) {
-            // Has children - create group
-            svg += `${indent}<g>\n`;
-            svg += `${indent}  <path style="${style}" d="${d}"/>\n`;
+                // Adobe Illustrator style attributes
+                const style = `fill:${fill};stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;`;
 
-            // Render children
-            for (const child of node.children) {
-                renderNode(child, depth + 1);
+                if (node.children && node.children.length > 0) {
+                    // Has children - create group
+                    svg += `${indent}<g>\n`;
+                    svg += `${indent}  <path style="${style}" d="${d}"/>\n`;
+
+                    // Render children
+                    for (const child of node.children) {
+                        renderNode(child, depth + 1);
+                    }
+
+                    svg += `${indent}</g>\n`;
+                } else {
+                    // Leaf node - just the path
+                    svg += `${indent}<path style="${style}" d="${d}"/>\n`;
+                }
+            } catch (error) {
+                console.error(`Error rendering node: ${error.message}`);
             }
-
-            svg += `${indent}</g>\n`;
-        } else {
-            // Leaf node - just the path
-            svg += `${indent}<path style="${style}" d="${d}"/>\n`;
         }
-    }
 
-    for (const root of roots) {
-        renderNode(root, 1);
-    }
+        if (roots && roots.length > 0) {
+            for (const root of roots) {
+                renderNode(root, 1);
+            }
+        }
 
-    svg += `</g>\n`;
-    return svg;
+        svg += `</g>\n`;
+        return svg;
+    } catch (error) {
+        console.error(`Error rendering nested paths: ${error.message}`);
+        // Return simple structure on error
+        return `<g id="BACKGROUND">\n  <rect style="fill:#FFFFFF;" width="${width}" height="${height}"/>\n</g>\n<g id="OBJECTS">\n</g>\n`;
+    }
 }
 
 // Convert image to SVG using Potrace
@@ -538,34 +588,90 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
         console.log(`\n   🔄 Processing ${sortedColors.length} color layers with Connected Component Labeling...`);
         const layers = await Promise.all(promises);
 
-        // Collect all paths with their metadata
-        const allPaths = [];
-        layers.forEach((layerPaths, layerIndex) => {
-            const pathMatches = layerPaths.matchAll(/<path([^>]*)>/g);
-            for (const match of pathMatches) {
-                const fullPath = match[0];
-                const attrs = match[1];
+        // Try nested path detection with fallback
+        try {
+            console.log(`   🔗 Analyzing paths for nested relationships...`);
 
-                // Extract 'd' attribute for bounding box calculation
-                const dMatch = attrs.match(/d="([^"]*)"/);
-                if (dMatch) {
-                    allPaths.push({
-                        fullTag: fullPath,
-                        d: dMatch[1],
-                        layerIndex: layerIndex,
-                        bbox: getPathBoundingBox(dMatch[1])
-                    });
+            // Collect all paths with their metadata
+            const allPaths = [];
+            layers.forEach((layerPaths, layerIndex) => {
+                const pathRegex = /<path([^>]*)>/g;
+
+                // Use matchAll if available, otherwise use regex.exec loop
+                if (layerPaths.matchAll) {
+                    const pathMatches = layerPaths.matchAll(pathRegex);
+                    for (const match of pathMatches) {
+                        const fullPath = match[0];
+                        const attrs = match[1];
+
+                        // Extract 'd' attribute for bounding box calculation
+                        const dMatch = attrs.match(/d="([^"]*)"/);
+                        if (dMatch) {
+                            allPaths.push({
+                                fullTag: fullPath,
+                                d: dMatch[1],
+                                layerIndex: layerIndex,
+                                bbox: getPathBoundingBox(dMatch[1])
+                            });
+                        }
+                    }
+                } else {
+                    // Fallback for older Node.js versions
+                    let match;
+                    while ((match = pathRegex.exec(layerPaths)) !== null) {
+                        const fullPath = match[0];
+                        const attrs = match[1];
+
+                        // Extract 'd' attribute for bounding box calculation
+                        const dMatch = attrs.match(/d="([^"]*)"/);
+                        if (dMatch) {
+                            allPaths.push({
+                                fullTag: fullPath,
+                                d: dMatch[1],
+                                layerIndex: layerIndex,
+                                bbox: getPathBoundingBox(dMatch[1])
+                            });
+                        }
+                    }
                 }
-            }
-        });
+            });
 
-        console.log(`   🔗 Analyzing ${allPaths.length} paths for nested relationships...`);
+            console.log(`   📊 Found ${allPaths.length} paths`);
 
-        // Build nested structure
-        const nestedStructure = buildNestedStructure(allPaths);
+            // Build nested structure
+            const nestedStructure = buildNestedStructure(allPaths);
+            console.log(`   ✅ Nested structure built successfully`);
 
-        // Render nested structure with <g> groups and Adobe Illustrator style
-        finalSVG += renderNestedPaths(nestedStructure, width, height);
+            // Render nested structure with <g> groups and Adobe Illustrator style
+            finalSVG += renderNestedPaths(nestedStructure, width, height);
+        } catch (error) {
+            console.error(`   ⚠️  Nested path detection failed: ${error.message}`);
+            console.log(`   🔄 Falling back to simple path rendering...`);
+
+            // Fallback: Simple rendering without nesting
+            finalSVG += `<g id="BACKGROUND">\n  <rect style="fill:#FFFFFF;" width="${width}" height="${height}"/>\n</g>\n`;
+            finalSVG += `<g id="OBJECTS">\n`;
+
+            layers.forEach(layerPaths => {
+                const pathRegex = /<path([^>]*)>/g;
+                let match;
+                while ((match = pathRegex.exec(layerPaths)) !== null) {
+                    const attrs = match[1];
+                    const dMatch = attrs.match(/d="([^"]*)"/);
+                    const fillMatch = attrs.match(/fill="([^"]*)"/);
+
+                    if (dMatch) {
+                        const d = dMatch[1];
+                        const fill = fillMatch ? fillMatch[1] : '#FFFFFF';
+                        const style = `fill:${fill};stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;`;
+                        finalSVG += `  <path style="${style}" d="${d}"/>\n`;
+                    }
+                }
+            });
+
+            finalSVG += `</g>\n`;
+        }
+
         finalSVG += '</svg>';
 
         const pathCount = (finalSVG.match(/<path/g) || []).length;
