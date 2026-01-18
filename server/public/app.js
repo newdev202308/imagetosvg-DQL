@@ -815,7 +815,8 @@ function convertToStrokeSVG(svgStr) {
 // Display SVG
 function displaySVG(svgStr) {
     // Apply coloring book mode if enabled
-    if (outputMode === 'stroke') {
+    // SKIP client-side processing for server-rgb because server already applies Adobe style
+    if (outputMode === 'stroke' && currentAlgorithm !== 'server-rgb') {
         svgStr = convertToStrokeSVG(svgStr);
     }
 
