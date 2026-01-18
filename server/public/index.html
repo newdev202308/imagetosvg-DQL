@@ -70,27 +70,38 @@
 
                     <!-- Stroke Settings (visible in Coloring Book Mode) -->
                     <div class="stroke-settings"
-                        style="margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 8px;">
-                        <label for="strokeWidth">Stroke Width: <span id="strokeWidthValue">1</span>px</label>
-                        <input type="range" id="strokeWidth" min="0.1" max="2" value="1" step="0.1">
+                        style="margin-top: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);">
 
-                        <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid #f0e5b3;">
-                            <label style="display: flex; align-items: center; cursor: pointer;">
-                                <input type="checkbox" id="fillGaps" checked style="margin-right: 8px;">
-                                <strong>Fill gaps in paths (Fix open regions)</strong>
+                        <div class="slider-control">
+                            <label for="strokeWidth" style="color: white; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                <i class="fa-solid fa-pen-nib"></i>
+                                Stroke Width
+                                <span id="strokeWidthValue" style="background: rgba(255,255,255,0.3); padding: 2px 12px; border-radius: 20px; font-size: 14px; margin-left: auto;">1 px</span>
                             </label>
-                            <small style="color: #856404; display: block; margin-top: 6px; margin-left: 24px;">
-                                Auto-closes open paths by connecting nearby endpoints.<br>
-                                Recommended for images with broken lines.
+                            <input type="range" id="strokeWidth" min="0.1" max="2" value="1" step="0.1"
+                                   style="width: 100%; height: 8px; border-radius: 5px; background: rgba(255,255,255,0.3); outline: none; -webkit-appearance: none;">
+                        </div>
+
+                        <div style="margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.2);">
+                            <label style="display: flex; align-items: center; cursor: pointer; color: white; font-weight: 500;">
+                                <input type="checkbox" id="fillGaps" checked style="margin-right: 10px; width: 18px; height: 18px; cursor: pointer;">
+                                <i class="fa-solid fa-fill" style="margin-right: 8px;"></i>
+                                Auto-fill gaps in paths
+                            </label>
+                            <small style="color: rgba(255,255,255,0.85); display: block; margin-top: 8px; margin-left: 36px; line-height: 1.5;">
+                                Connects nearby endpoints to close open regions<br>
+                                ✓ Recommended for images with broken lines
                             </small>
                         </div>
 
-                        <small style="color: #856404; display: block; margin-top: 12px;">
-                            ✓ Only &lt;path&gt; elements<br>
-                            ✓ Each path = 1 colorable region<br>
-                            ✓ fill="#FFFFFF" (tap to change color)<br>
-                            ✓ fill-rule="evenodd" for all paths
-                        </small>
+                        <div style="margin-top: 15px; padding: 12px; background: rgba(255,255,255,0.15); border-radius: 8px; backdrop-filter: blur(10px);">
+                            <small style="color: white; display: block; line-height: 1.8; font-weight: 500;">
+                                <i class="fa-solid fa-check-circle" style="color: #4ade80;"></i> Only &lt;path&gt; elements<br>
+                                <i class="fa-solid fa-check-circle" style="color: #4ade80;"></i> Each path = 1 colorable region<br>
+                                <i class="fa-solid fa-check-circle" style="color: #4ade80;"></i> fill="#FFFFFF" (tap to change)<br>
+                                <i class="fa-solid fa-check-circle" style="color: #4ade80;"></i> fill-rule="evenodd"
+                            </small>
+                        </div>
                     </div>
                 </div>
 
@@ -161,21 +172,44 @@
 
                     <!-- RGB Settings (Visible when Potrace RGB is selected) -->
                     <div class="setting-item rgb-settings"
-                        style="display: none; margin-top: 15px; background: #e8f5e9; padding: 15px; border-radius: 8px;">
-                        <label for="serverColors">Color Count (Layers): <span id="serverColorsValue">12</span></label>
-                        <input type="range" id="serverColors" min="2" max="24" value="12" step="1">
-                        <small style="color: #666;">
-                            More colors = More separate paths (up to 20+ regions)<br>
-                            ⏱️ Processing time: 2-4 colors (~3s), 8-12 colors (~8s), 16-24 colors (~15-20s)
-                        </small>
+                        style="display: none; margin-top: 15px; background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(240, 147, 251, 0.25);">
 
-                        <div style="margin-top: 15px; padding-top: 12px; border-top: 1px solid #c8e6c9;">
-                            <label for="optTolerance">Quality (Curve Accuracy): <span id="optToleranceValue">0.1</span></label>
-                            <input type="range" id="optTolerance" min="0.05" max="0.5" value="0.1" step="0.05">
-                            <small style="color: #666;">
-                                Lower = More accurate (larger file) | Higher = Smoother (smaller file)<br>
-                                Recommended: 0.1 for high accuracy, 0.2 for balanced
+                        <div class="slider-control">
+                            <label for="serverColors" style="color: white; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                <i class="fa-solid fa-layer-group"></i>
+                                Color Layers
+                                <span id="serverColorsValue" style="background: rgba(255,255,255,0.3); padding: 2px 12px; border-radius: 20px; font-size: 14px; margin-left: auto;">12 colors</span>
+                            </label>
+                            <input type="range" id="serverColors" min="2" max="24" value="12" step="1"
+                                   style="width: 100%; height: 8px; border-radius: 5px; background: rgba(255,255,255,0.3); outline: none; -webkit-appearance: none;">
+                            <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                                <small style="color: rgba(255,255,255,0.9); font-weight: 500;">2</small>
+                                <small style="color: rgba(255,255,255,0.9); font-weight: 500;">24</small>
+                            </div>
+                            <small style="color: rgba(255,255,255,0.95); display: block; margin-top: 8px; line-height: 1.6;">
+                                <i class="fa-solid fa-info-circle"></i> More colors = More separate paths (up to 20+ regions)<br>
+                                <i class="fa-solid fa-clock"></i> Time: 2-4 colors (~3s) • 8-12 colors (~8s) • 16-24 colors (~15-20s)
                             </small>
+                        </div>
+
+                        <div style="margin-top: 18px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.2);">
+                            <div class="slider-control">
+                                <label for="optTolerance" style="color: white; font-weight: 600; display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                                    <i class="fa-solid fa-chart-line"></i>
+                                    Curve Accuracy
+                                    <span id="optToleranceValue" style="background: rgba(255,255,255,0.3); padding: 2px 12px; border-radius: 20px; font-size: 14px; margin-left: auto;">0.1</span>
+                                </label>
+                                <input type="range" id="optTolerance" min="0.05" max="0.5" value="0.1" step="0.05"
+                                       style="width: 100%; height: 8px; border-radius: 5px; background: rgba(255,255,255,0.3); outline: none; -webkit-appearance: none;">
+                                <div style="display: flex; justify-content: space-between; margin-top: 5px;">
+                                    <small style="color: rgba(255,255,255,0.9); font-weight: 500;">⭐⭐⭐⭐⭐ Accurate</small>
+                                    <small style="color: rgba(255,255,255,0.9); font-weight: 500;">Smooth ⭐⭐</small>
+                                </div>
+                                <small style="color: rgba(255,255,255,0.95); display: block; margin-top: 8px; line-height: 1.6;">
+                                    <i class="fa-solid fa-arrow-down"></i> Lower = Higher accuracy + Larger file<br>
+                                    <i class="fa-solid fa-lightbulb"></i> Recommended: 0.05 (best) • 0.1 (great) • 0.2 (balanced)
+                                </small>
+                            </div>
                         </div>
                     </div>
 
@@ -278,7 +312,7 @@
 
     <!-- ImageTracer.js Library -->
     <script src="https://cdn.jsdelivr.net/npm/imagetracerjs@1.2.6/imagetracer_v1.2.6.min.js"></script>
-    <script src="app.js?v=20260118b"></script>
+    <script src="app.js?v=20260118c"></script>
 </body>
 
 </html>

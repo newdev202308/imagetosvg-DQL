@@ -113,7 +113,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const colorSlider = document.getElementById('serverColors');
     if (colorSlider) {
         colorSlider.addEventListener('input', (e) => {
-            document.getElementById('serverColorsValue').textContent = e.target.value;
+            const value = e.target.value;
+            document.getElementById('serverColorsValue').textContent = `${value} color${value > 1 ? 's' : ''}`;
         });
     }
 
@@ -121,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const strokeWidthSlider = document.getElementById('strokeWidth');
     if (strokeWidthSlider) {
         strokeWidthSlider.addEventListener('input', (e) => {
-            document.getElementById('strokeWidthValue').textContent = e.target.value;
+            document.getElementById('strokeWidthValue').textContent = `${e.target.value} px`;
         });
     }
 
