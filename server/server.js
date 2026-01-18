@@ -322,6 +322,8 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
         const colorCount = parseInt(colors) || 8;
         const strokeWidthValue = parseFloat(strokeWidth) || 1;
 
+        console.log(`Settings: colorMode=${isColorMode}, colors=${colorCount}, strokeWidth=${strokeWidthValue}`);
+
         // B&W MODE (Legacy Potrace)
         if (!isColorMode) {
             const processedImage = await sharp(req.file.buffer)
