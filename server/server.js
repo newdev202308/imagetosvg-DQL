@@ -239,7 +239,7 @@ function buildNestedStructure(paths) {
 }
 
 // Render nested paths with <g> grouping and Adobe Illustrator style
-function renderNestedPaths(roots, width, height) {
+function renderNestedPaths(roots, width, height, strokeWidth = 1) {
     try {
         let svg = `<g id="BACKGROUND">\n  <rect style="fill:#FFFFFF;" width="${width}" height="${height}"/>\n</g>\n`;
         svg += `<g id="OBJECTS">\n`;
@@ -257,8 +257,8 @@ function renderNestedPaths(roots, width, height) {
                 const d = dMatch ? dMatch[1] : '';
                 const fill = fillMatch ? fillMatch[1] : '#FFFFFF';
 
-                // Adobe Illustrator style attributes
-                const style = `fill:${fill};stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;`;
+                // Adobe Illustrator style attributes with dynamic stroke width
+                const style = `fill:${fill};stroke:#000000;stroke-width:${strokeWidth};stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;`;
 
                 if (node.children && node.children.length > 0) {
                     // Has children - create group
@@ -314,11 +314,13 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
             optTolerance = 0.2,
             colorMode = 'false', // NEW: Check if color mode is enabled
             colors = 8,          // NEW: Number of colors
-            quantize = 'true'
+            quantize = 'true',
+            strokeWidth = 1      // NEW: Stroke width for Coloring Book mode
         } = req.body;
 
         const isColorMode = colorMode === 'true' || colorMode === true;
         const colorCount = parseInt(colors) || 8;
+        const strokeWidthValue = parseFloat(strokeWidth) || 1;
 
         // B&W MODE (Legacy Potrace)
         if (!isColorMode) {
@@ -643,7 +645,7 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
             console.log(`   ✅ Nested structure built successfully`);
 
             // Render nested structure with <g> groups and Adobe Illustrator style
-            finalSVG += renderNestedPaths(nestedStructure, width, height);
+            finalSVG += renderNestedPaths(nestedStructure, width, height, strokeWidthValue);
         } catch (error) {
             console.error(`   ⚠️  Nested path detection failed: ${error.message}`);
             console.log(`   🔄 Falling back to simple path rendering...`);
@@ -663,7 +665,7 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
                     if (dMatch) {
                         const d = dMatch[1];
                         const fill = fillMatch ? fillMatch[1] : '#FFFFFF';
-                        const style = `fill:${fill};stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;`;
+                        const style = `fill:${fill};stroke:#000000;stroke-width:${strokeWidthValue};stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;`;
                         finalSVG += `  <path style="${style}" d="${d}"/>\n`;
                     }
                 }

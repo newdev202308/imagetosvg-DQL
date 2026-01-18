@@ -558,6 +558,9 @@ async function convertWithPotrace() {
         if (currentAlgorithm === 'server-rgb') {
             formData.append('colorMode', 'true');
             formData.append('colors', colorCount);
+            // Add stroke width for Coloring Book mode
+            const strokeWidth = document.getElementById('strokeWidth').value;
+            formData.append('strokeWidth', strokeWidth);
         } else {
             formData.append('colorMode', 'false');
         }
