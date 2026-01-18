@@ -321,8 +321,9 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
         const isColorMode = colorMode === 'true' || colorMode === true;
         const colorCount = parseInt(colors) || 8;
         const strokeWidthValue = parseFloat(strokeWidth) || 1;
+        const optToleranceValue = parseFloat(optTolerance) || 0.1;
 
-        console.log(`Settings: colorMode=${isColorMode}, colors=${colorCount}, strokeWidth=${strokeWidthValue}`);
+        console.log(`Settings: colorMode=${isColorMode}, colors=${colorCount}, strokeWidth=${strokeWidthValue}, optTolerance=${optToleranceValue}`);
 
         // B&W MODE (Legacy Potrace)
         if (!isColorMode) {
@@ -567,7 +568,7 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
                         turnPolicy: 'black',  // Better for line art
                         alphaMax: 0.2,  // REDUCED from 0.3 - Ultra sharp corners
                         optCurve: true,  // Always optimize curves
-                        optTolerance: 0.1,  // Balanced for smooth curves with detail preservation
+                        optTolerance: optToleranceValue,  // User-controlled accuracy (lower = more accurate)
                         color: `rgb(${color.r},${color.g},${color.b})`,
                         background: 'transparent'
                     };
