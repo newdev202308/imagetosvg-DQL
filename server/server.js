@@ -45,6 +45,206 @@ function colorDistance(c1, c2) {
     );
 }
 
+// Helper: Connected Component Labeling (Flood Fill)
+// Finds all separate islands/regions in a binary mask
+function findConnectedComponents(maskBuffer, width, height, minSize = 5) {
+    const visited = new Uint8Array(width * height);
+    const components = [];
+
+    // Flood fill from a starting point
+    function floodFill(startX, startY, componentId) {
+        const stack = [[startX, startY]];
+        const pixels = [];
+
+        while (stack.length > 0) {
+            const [x, y] = stack.pop();
+            const idx = y * width + x;
+
+            // Skip if out of bounds or already visited
+            if (x < 0 || x >= width || y < 0 || y >= height) continue;
+            if (visited[idx] === 1) continue;
+            if (maskBuffer[idx] !== 0) continue; // Only process foreground (black pixels)
+
+            visited[idx] = 1;
+            pixels.push(idx);
+
+            // Check 4-connected neighbors
+            stack.push([x + 1, y]);
+            stack.push([x - 1, y]);
+            stack.push([x, y + 1]);
+            stack.push([x, y - 1]);
+        }
+
+        return pixels;
+    }
+
+    // Scan entire image for unvisited foreground pixels
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const idx = y * width + x;
+
+            // If this is foreground and not visited, start new component
+            if (maskBuffer[idx] === 0 && visited[idx] === 0) {
+                const pixels = floodFill(x, y, components.length);
+
+                // Only keep components larger than minSize
+                if (pixels.length >= minSize) {
+                    components.push(pixels);
+                }
+            }
+        }
+    }
+
+    return components;
+}
+
+// Helper: Create isolated mask for a single component
+function createComponentMask(componentPixels, width, height) {
+    const mask = Buffer.alloc(width * height, 255); // Start with all white
+
+    // Set component pixels to black
+    for (const idx of componentPixels) {
+        mask[idx] = 0;
+    }
+
+    return mask;
+}
+
+// ===== NESTED PATH DETECTION FUNCTIONS =====
+
+// Get bounding box from path data
+function getPathBoundingBox(pathData) {
+    const coords = [];
+
+    // Extract all coordinate pairs from path data
+    const matches = pathData.matchAll(/([+-]?\d*\.?\d+)[,\s]+([+-]?\d*\.?\d+)/g);
+    for (const match of matches) {
+        coords.push({
+            x: parseFloat(match[1]),
+            y: parseFloat(match[2])
+        });
+    }
+
+    if (coords.length === 0) {
+        return { minX: 0, minY: 0, maxX: 0, maxY: 0, area: 0 };
+    }
+
+    const minX = Math.min(...coords.map(c => c.x));
+    const maxX = Math.max(...coords.map(c => c.x));
+    const minY = Math.min(...coords.map(c => c.y));
+    const maxY = Math.max(...coords.map(c => c.y));
+
+    return {
+        minX,
+        minY,
+        maxX,
+        maxY,
+        area: (maxX - minX) * (maxY - minY)
+    };
+}
+
+// Check if bbox1 contains bbox2 (bbox1 is parent, bbox2 is child)
+function bboxContains(parent, child) {
+    return parent.minX <= child.minX &&
+           parent.maxX >= child.maxX &&
+           parent.minY <= child.minY &&
+           parent.maxY >= child.maxY &&
+           parent.area > child.area; // Parent must be larger
+}
+
+// Build nested structure from flat path list
+function buildNestedStructure(paths) {
+    // Sort by area descending (largest first = potential parents)
+    const sorted = [...paths].sort((a, b) => b.bbox.area - a.bbox.area);
+
+    // Build parent-child relationships
+    const nodes = sorted.map((path, index) => ({
+        ...path,
+        id: index,
+        children: []
+    }));
+
+    // For each node, find its immediate parent
+    for (let i = nodes.length - 1; i >= 0; i--) {
+        const child = nodes[i];
+
+        // Find smallest parent that contains this child
+        let immediateParent = null;
+        let smallestParentArea = Infinity;
+
+        for (let j = 0; j < i; j++) {
+            const parent = nodes[j];
+
+            if (bboxContains(parent.bbox, child.bbox)) {
+                if (parent.bbox.area < smallestParentArea) {
+                    immediateParent = parent;
+                    smallestParentArea = parent.bbox.area;
+                }
+            }
+        }
+
+        if (immediateParent) {
+            immediateParent.children.push(child);
+        }
+    }
+
+    // Return only root nodes (those without parents)
+    const roots = nodes.filter((node, index) => {
+        // Check if this node is a child of any other node
+        for (let j = 0; j < index; j++) {
+            if (nodes[j].children.includes(node)) {
+                return false;
+            }
+        }
+        return true;
+    });
+
+    return roots;
+}
+
+// Render nested paths with <g> grouping and Adobe Illustrator style
+function renderNestedPaths(roots, width, height) {
+    let svg = `<g id="BACKGROUND">\n  <rect style="fill:#FFFFFF;" width="${width}" height="${height}"/>\n</g>\n`;
+    svg += `<g id="OBJECTS">\n`;
+
+    function renderNode(node, depth = 1) {
+        const indent = '  '.repeat(depth);
+
+        // Extract attributes from fullTag
+        const dMatch = node.fullTag.match(/d="([^"]*)"/);
+        const fillMatch = node.fullTag.match(/fill="([^"]*)"/);
+
+        const d = dMatch ? dMatch[1] : '';
+        const fill = fillMatch ? fillMatch[1] : '#FFFFFF';
+
+        // Adobe Illustrator style attributes
+        const style = `fill:${fill};stroke:#000000;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;`;
+
+        if (node.children.length > 0) {
+            // Has children - create group
+            svg += `${indent}<g>\n`;
+            svg += `${indent}  <path style="${style}" d="${d}"/>\n`;
+
+            // Render children
+            for (const child of node.children) {
+                renderNode(child, depth + 1);
+            }
+
+            svg += `${indent}</g>\n`;
+        } else {
+            // Leaf node - just the path
+            svg += `${indent}<path style="${style}" d="${d}"/>\n`;
+        }
+    }
+
+    for (const root of roots) {
+        renderNode(root, 1);
+    }
+
+    svg += `</g>\n`;
+    return svg;
+}
+
 // Convert image to SVG using Potrace
 app.post('/api/convert', upload.single('image'), async (req, res) => {
     try {
@@ -250,12 +450,20 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
         });
 
         // --- 2. Process Layers ---
-        let finalSVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${info.width} ${info.height}">`;
-
-        // Get raw pixel data of full image
-        const rawFull = await sharp(req.file.buffer).ensureAlpha().raw().toBuffer();
+        // Process at FULL RESOLUTION to maintain 100% accuracy
         const width = info.width;
         const height = info.height;
+
+        console.log(`   Processing size: ${width}x${height} (Full Resolution - 100% accurate)`);
+
+        // Get raw pixel data at full resolution
+        const rawFull = await sharp(req.file.buffer)
+            .ensureAlpha()
+            .raw()
+            .toBuffer();
+
+        // SVG with exact dimensions
+        let finalSVG = `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`;
 
         const promises = sortedColors.map(async (color, colorIndex) => {
             // Create 1-bit buffer for this color using CLOSEST COLOR approach
@@ -285,38 +493,88 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
                 maskBuffer[i] = (closestIndex === colorIndex) ? 0 : 255;
             }
 
-            // Trace this mask
-            const pngMask = await sharp(maskBuffer, { raw: { width, height, channels: 1 } }).png().toBuffer();
+            // CRITICAL: Find all separate objects (connected components) in this color mask
+            // This ensures each object gets its own path, not grouped by color
+            // minSize=30: Filter out tiny noise at full resolution (increased from 15)
+            const components = findConnectedComponents(maskBuffer, width, height, 30);
 
-            return new Promise((resolve) => {
-                const opts = {
-                    threshold: 180,  // INCREASED from 128 - Only trace very dark pixels = Thinner lines
-                    turdSize: 0,  // FORCE 0 - Keep ALL details
-                    turnPolicy: 'black',  // Better for line art
-                    alphaMax: 0.2,  // REDUCED from 0.3 - Ultra sharp corners
-                    optCurve: true,  // Always optimize curves
-                    optTolerance: 0.1,  // Balanced for smooth curves with detail preservation
-                    color: `rgb(${color.r},${color.g},${color.b})`,
-                    background: 'transparent'
-                };
-                potrace.trace(pngMask, opts, (err, svgPartial) => {
-                    if (err) resolve('');
-                    // Extract <path> elements only
-                    const paths = svgPartial.match(/<path[^>]*>/g) || [];
-                    resolve(paths.join('\n'));
+            console.log(`   Color ${colorIndex + 1} (rgb(${color.r},${color.g},${color.b})): Found ${components.length} separate objects`);
+
+            // Trace EACH component separately
+            const componentPromises = components.map(async (componentPixels, compIndex) => {
+                // Create isolated mask for this single component
+                const componentMask = createComponentMask(componentPixels, width, height);
+                const pngMask = await sharp(componentMask, { raw: { width, height, channels: 1 } }).png().toBuffer();
+
+                return new Promise((resolve) => {
+                    const opts = {
+                        threshold: 180,  // INCREASED from 128 - Only trace very dark pixels = Thinner lines
+                        turdSize: 0,  // FORCE 0 - Keep ALL details
+                        turnPolicy: 'black',  // Better for line art
+                        alphaMax: 0.2,  // REDUCED from 0.3 - Ultra sharp corners
+                        optCurve: true,  // Always optimize curves
+                        optTolerance: 0.1,  // Balanced for smooth curves with detail preservation
+                        color: `rgb(${color.r},${color.g},${color.b})`,
+                        background: 'transparent'
+                    };
+                    potrace.trace(pngMask, opts, (err, svgPartial) => {
+                        if (err) {
+                            console.log(`   ⚠️  Component ${compIndex + 1} trace failed:`, err.message);
+                            resolve('');
+                            return;
+                        }
+                        // Extract <path> elements only
+                        const paths = svgPartial.match(/<path[^>]*>/g) || [];
+                        resolve(paths.join('\n'));
+                    });
                 });
             });
+
+            // Wait for all components of this color to be traced
+            const allComponentPaths = await Promise.all(componentPromises);
+            return allComponentPaths.join('\n');
         });
 
-        console.log(`   Processing ${sortedColors.length} color layers...`);
+        console.log(`\n   🔄 Processing ${sortedColors.length} color layers with Connected Component Labeling...`);
         const layers = await Promise.all(promises);
-        finalSVG += layers.join('\n');
+
+        // Collect all paths with their metadata
+        const allPaths = [];
+        layers.forEach((layerPaths, layerIndex) => {
+            const pathMatches = layerPaths.matchAll(/<path([^>]*)>/g);
+            for (const match of pathMatches) {
+                const fullPath = match[0];
+                const attrs = match[1];
+
+                // Extract 'd' attribute for bounding box calculation
+                const dMatch = attrs.match(/d="([^"]*)"/);
+                if (dMatch) {
+                    allPaths.push({
+                        fullTag: fullPath,
+                        d: dMatch[1],
+                        layerIndex: layerIndex,
+                        bbox: getPathBoundingBox(dMatch[1])
+                    });
+                }
+            }
+        });
+
+        console.log(`   🔗 Analyzing ${allPaths.length} paths for nested relationships...`);
+
+        // Build nested structure
+        const nestedStructure = buildNestedStructure(allPaths);
+
+        // Render nested structure with <g> groups and Adobe Illustrator style
+        finalSVG += renderNestedPaths(nestedStructure, width, height);
         finalSVG += '</svg>';
 
         const pathCount = (finalSVG.match(/<path/g) || []).length;
         const sizeKB = (Buffer.byteLength(finalSVG, 'utf8') / 1024).toFixed(2);
 
-        console.log(`   ✅ Done! ${pathCount} paths, ${sizeKB} KB\n`);
+        console.log(`\n   ✅ Conversion Complete!`);
+        console.log(`   📊 Total separate paths: ${pathCount} (each object is now a separate path)`);
+        console.log(`   📦 File size: ${sizeKB} KB`);
+        console.log(`   🎨 Colors processed: ${sortedColors.length}\n`);
 
         res.json({
             success: true,
