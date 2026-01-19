@@ -199,10 +199,6 @@ function buildNestedStructure(paths) {
             const child = nodes[i];
             if (!child.bbox) continue;
 
-            // Extract child color
-            const childFillMatch = child.fullTag.match(/fill="([^"]*)"/);
-            const childFill = childFillMatch ? childFillMatch[1] : '';
-
             // Find smallest parent that contains this child
             let immediateParent = null;
             let smallestParentArea = Infinity;
@@ -210,23 +206,6 @@ function buildNestedStructure(paths) {
             for (let j = 0; j < i; j++) {
                 const parent = nodes[j];
                 if (!parent.bbox) continue;
-
-                // Extract parent color
-                const parentFillMatch = parent.fullTag.match(/fill="([^"]*)"/);
-                const parentFill = parentFillMatch ? parentFillMatch[1] : '';
-
-                // COLOR RULE: Black/dark paths should NEVER be children of white/light paths
-                // This prevents grass/details from becoming nested inside rabbit body
-                const childIsBlack = childFill.includes('rgb(0,0,0)') || childFill.includes('#000');
-                const parentIsWhite = parentFill.includes('rgb(240,240,240)') ||
-                                     parentFill.includes('rgb(255,255,255)') ||
-                                     parentFill.includes('#FFF') ||
-                                     parentFill.includes('#fff');
-
-                if (childIsBlack && parentIsWhite) {
-                    // Skip - black paths are always independent, never nested in white
-                    continue;
-                }
 
                 if (bboxContains(parent.bbox, child.bbox)) {
                     if (parent.bbox.area < smallestParentArea) {
