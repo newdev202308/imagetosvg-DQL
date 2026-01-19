@@ -641,10 +641,33 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
                 }
             });
 
-            console.log(`   📊 Found ${allPaths.length} paths`);
+            console.log(`   📊 Found ${allPaths.length} paths (before filtering)`);
+
+            // Filter out background-like paths:
+            // 1. Very light colors (near white like rgb(240,240,240))
+            // 2. Area >= 95% of canvas (full background rect)
+            const canvasArea = width * height;
+            const filteredPaths = allPaths.filter(path => {
+                // Check if fill color is very light (near white)
+                const fillMatch = path.fullTag.match(/fill:rgb\((\d+),(\d+),(\d+)\)/);
+                if (fillMatch) {
+                    const r = parseInt(fillMatch[1]);
+                    const g = parseInt(fillMatch[2]);
+                    const b = parseInt(fillMatch[3]);
+
+                    // If all RGB > 230 (very light), AND area >= 95% canvas, it's likely background
+                    if (r > 230 && g > 230 && b > 230 && path.bbox && path.bbox.area >= canvasArea * 0.95) {
+                        console.log(`   ⚠️  Filtered out background-like path: rgb(${r},${g},${b}), area=${path.bbox.area.toFixed(0)} (${((path.bbox.area/canvasArea)*100).toFixed(1)}% of canvas)`);
+                        return false; // Filter out
+                    }
+                }
+                return true; // Keep
+            });
+
+            console.log(`   📊 Found ${filteredPaths.length} paths (after filtering background)`);
 
             // Build nested structure
-            const nestedStructure = buildNestedStructure(allPaths);
+            const nestedStructure = buildNestedStructure(filteredPaths);
             console.log(`   ✅ Nested structure built successfully`);
 
             // Render nested structure with <g> groups and Adobe Illustrator style
