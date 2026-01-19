@@ -255,7 +255,20 @@ function renderNestedPaths(roots, width, height, strokeWidth = 1) {
                 const fillMatch = node.fullTag.match(/fill="([^"]*)"/);
 
                 const d = dMatch ? dMatch[1] : '';
-                const fill = fillMatch ? fillMatch[1] : '#FFFFFF';
+                let fill = fillMatch ? fillMatch[1] : '#FFFFFF';
+
+                // Normalize near-white colors (rgb(240,240,240), etc.) to pure white
+                const rgbMatch = fill.match(/rgb\((\d+),(\d+),(\d+)\)/);
+                if (rgbMatch) {
+                    const r = parseInt(rgbMatch[1]);
+                    const g = parseInt(rgbMatch[2]);
+                    const b = parseInt(rgbMatch[3]);
+
+                    // If all RGB > 230 (very light gray), convert to pure white
+                    if (r > 230 && g > 230 && b > 230) {
+                        fill = 'rgb(255,255,255)';
+                    }
+                }
 
                 // Adobe Illustrator style attributes with dynamic stroke width
                 const style = `fill:${fill};stroke:#000000;stroke-width:${strokeWidth};stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;`;
@@ -690,7 +703,20 @@ app.post('/api/convert', upload.single('image'), async (req, res) => {
 
                     if (dMatch) {
                         const d = dMatch[1];
-                        const fill = fillMatch ? fillMatch[1] : '#FFFFFF';
+                        let fill = fillMatch ? fillMatch[1] : '#FFFFFF';
+
+                        // Normalize near-white colors to pure white
+                        const rgbMatch = fill.match(/rgb\((\d+),(\d+),(\d+)\)/);
+                        if (rgbMatch) {
+                            const r = parseInt(rgbMatch[1]);
+                            const g = parseInt(rgbMatch[2]);
+                            const b = parseInt(rgbMatch[3]);
+
+                            if (r > 230 && g > 230 && b > 230) {
+                                fill = 'rgb(255,255,255)';
+                            }
+                        }
+
                         const style = `fill:${fill};stroke:#000000;stroke-width:${strokeWidthValue};stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;`;
                         finalSVG += `  <path style="${style}" d="${d}"/>\n`;
                     }
